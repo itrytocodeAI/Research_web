@@ -18,36 +18,34 @@ export async function requireAuthenticatedUser(req) {
   const request = toWebRequest(req)
   const authorizedParties = getAuthorizedParties(req)
   
-  console.log('[auth] Attempting authentication with:', {
-    authorizedParties,
-    hasAuthHeader: Boolean(req.headers.authorization),
-    publishableKeyPrefix: publishableKey?.substring(0, 10),
-  })
+  let requestState
+  try {
+    requestState = await clerkClient.authenticateRequest(request, {
+      authorizedParties,
+      secretKey: process.env.CLERK_SECRET_KEY,
+      publishableKey,
+    })
+  } catch (clerkError) {
+    console.error('[auth] Clerk authenticateRequest threw:', clerkError)
+    const error = new Error(`Clerk error: ${clerkError.message}`)
+    error.status = 401
+    error.clerkError = String(clerkError)
+    throw error
+  }
 
-  const requestState = await clerkClient.authenticateRequest(request, {
-    acceptsToken: 'session_token',
-    authorizedParties,
-    secretKey: process.env.CLERK_SECRET_KEY,
-    publishableKey,
-  })
+  console.log('[auth] Request state keys:', Object.keys(requestState || {}))
+  console.log('[auth] Request state:', JSON.stringify(requestState, null, 2))
 
-  console.log('[auth] Request state:', {
-    isAuthenticated: requestState.isAuthenticated,
-    reason: requestState.reason,
-    message: requestState.message,
-    status: requestState.status,
-  })
-
-  if (!requestState.isAuthenticated) {
+  if (!requestState.isSignedIn) {
     const error = new Error(requestState.message || 'Unauthorized')
     error.status = 401
-    error.reason = requestState.reason
+    error.clerkState = JSON.stringify(requestState)
     throw error
   }
 
   const auth = requestState.toAuth()
   if (!auth.userId) {
-    const error = new Error('Unauthorized')
+    const error = new Error('Unauthorized - no userId')
     error.status = 401
     throw error
   }
