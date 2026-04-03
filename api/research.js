@@ -282,8 +282,17 @@ export default async function handler(req, res) {
     const parsed = extractStructuredOutput(payload)
 
     if (!parsed) {
+      // Debug: show what Gemini actually returned
+      const rawText = payload?.candidates?.[0]?.content?.parts?.[0]?.text || null
       return res.status(502).json({
         error: 'Gemini did not return a valid structured research payload.',
+        debug: {
+          hasCandidate: Boolean(payload?.candidates?.[0]),
+          hasParts: Boolean(payload?.candidates?.[0]?.content?.parts),
+          partsCount: payload?.candidates?.[0]?.content?.parts?.length,
+          rawTextPreview: rawText ? rawText.substring(0, 500) : null,
+          finishReason: payload?.candidates?.[0]?.finishReason,
+        }
       })
     }
 
