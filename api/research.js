@@ -367,9 +367,16 @@ function extractStructuredOutput(payload) {
       try {
         // Strip markdown code blocks
         let cleanText = item.text.trim()
+        const originalLength = cleanText.length
         cleanText = cleanText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/i, '')
-        return JSON.parse(cleanText)
-      } catch {
+        console.log('[extract] Original length:', originalLength, 'Cleaned length:', cleanText.length)
+        console.log('[extract] First 100 chars:', cleanText.substring(0, 100))
+        const parsed = JSON.parse(cleanText)
+        console.log('[extract] Successfully parsed JSON with keys:', Object.keys(parsed))
+        return parsed
+      } catch (error) {
+        console.error('[extract] JSON parse failed:', error.message)
+        console.error('[extract] Text preview:', item.text.substring(0, 200))
         return null
       }
     }
