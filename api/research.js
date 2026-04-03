@@ -282,30 +282,24 @@ export default async function handler(req, res) {
     const parsed = extractStructuredOutput(payload)
 
     if (!parsed) {
-      // Debug: show what Gemini actually returned
+      // Debug: show full candidate structure
       const candidate = payload?.candidates?.[0]
-      const rawText = candidate?.content?.parts?.[0]?.text || null
-      
-      // Try to manually parse to show the error
-      let parseError = null
-      if (rawText) {
-        try {
-          let cleanText = rawText.trim()
-          cleanText = cleanText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/i, '')
-          JSON.parse(cleanText)
-        } catch (e) {
-          parseError = e.message
-        }
-      }
+      const content = candidate?.content
+      const parts = content?.parts
+      const rawText = parts?.[0]?.text || null
       
       return res.status(502).json({
         error: 'Gemini did not return a valid structured research payload.',
         debug: {
           hasCandidate: Boolean(candidate),
-          hasParts: Boolean(candidate?.content?.parts),
-          rawTextLength: rawText?.length,
-          rawTextPreview: rawText ? rawText.substring(0, 500) : null,
-          parseError,
+          candidateKeys: candidate ? Object.keys(candidate) : [],
+          hasContent: Boolean(content),
+          contentKeys: content ? Object.keys(content) : [],
+          hasParts: Boolean(parts),
+          partsLength: Array.isArray(parts) ? parts.length : 0,
+          firstPartKeys: parts?.[0] ? Object.keys(parts[0]) : [],
+          rawTextLength: rawText?.length || 0,
+          rawTextPreview: rawText ? rawText.substring(0, 300) : null,
           finishReason: candidate?.finishReason,
         }
       })
