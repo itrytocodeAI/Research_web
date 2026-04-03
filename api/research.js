@@ -159,33 +159,62 @@ const researchSchema = {
   },
 }
 
+const DEBUG_VERSION = 'v3-full-debug'
+
 export default async function handler(req, res) {
-  // Log immediately to verify handler is being called
-  console.log('[research] Handler invoked:', req.method, req.url)
-  
+  // Full debug output for every request
+  const debug = {
+    version: DEBUG_VERSION,
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    methodType: typeof req.method,
+    url: req.url,
+    path: req.url?.split('?')[0],
+    hasBody: Boolean(req.body),
+    bodyKeys: req.body ? Object.keys(req.body) : [],
+    bodyTopic: req.body?.topic,
+    contentType: req.headers['content-type'],
+    hasAuth: Boolean(req.headers.authorization),
+    host: req.headers.host,
+    origin: req.headers.origin,
+    envCheck: {
+      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+      hasClerkSecret: Boolean(process.env.CLERK_SECRET_KEY),
+      hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
+    },
+  }
+
+  console.log('[research] Full debug:', JSON.stringify(debug))
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    return res.status(200).end()
+    return res.status(200).json({ ok: true, debug })
   }
 
-  if (req.method !== 'POST') {
+  // Check method - case insensitive
+  const method = (req.method || '').toUpperCase()
+  if (method !== 'POST') {
     res.setHeader('Allow', 'POST')
-    return res.status(405).json({ error: 'Method not allowed', handlerReached: true })
+    return res.status(405).json({ 
+      error: 'Method not allowed', 
+      debug,
+    })
   }
 
   if (!process.env.GEMINI_API_KEY) {
     return res.status(500).json({
       error: 'GEMINI_API_KEY is not configured on the server.',
+      debug,
     })
   }
 
   const topic = typeof req.body?.topic === 'string' ? req.body.topic.trim() : ''
 
   if (!topic) {
-    return res.status(400).json({ error: 'A research topic is required.' })
+    return res.status(400).json({ error: 'A research topic is required.', debug })
   }
 
   try {
