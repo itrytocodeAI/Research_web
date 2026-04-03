@@ -365,7 +365,10 @@ function extractStructuredOutput(payload) {
   for (const item of parts) {
     if (typeof item?.text === 'string') {
       try {
-        return JSON.parse(item.text)
+        // Strip markdown code blocks
+        let cleanText = item.text.trim()
+        cleanText = cleanText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/i, '')
+        return JSON.parse(cleanText)
       } catch {
         return null
       }
