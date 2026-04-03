@@ -253,8 +253,7 @@ export default async function handler(req, res) {
           },
         ],
         generationConfig: {
-          responseMimeType: 'application/json',
-          responseJsonSchema: researchSchema,
+          temperature: 0.7,
         },
       }),
     }
@@ -312,14 +311,36 @@ export default async function handler(req, res) {
 }
 
 function buildSystemPrompt() {
-  return [
-    'You are an expert research analyst.',
-    'Produce a practical, current, implementation-aware research brief.',
-    'Keep the executive summary to 2 or 3 paragraphs.',
-    'Provide 3 to 5 research gaps, 2 to 4 research problems, and 2 to 4 hypotheses.',
-    'Keep every array populated with meaningful values.',
-    'Favor concise, concrete statements over generic academic filler.',
-  ].join(' ')
+  return `You are an expert research analyst. Produce a practical, current, implementation-aware research brief.
+
+IMPORTANT: Your response MUST be valid JSON matching this exact structure:
+{
+  "executiveSummary": "2-3 paragraph summary string",
+  "researchGaps": [
+    {"title": "string", "description": "string", "severity": "high|medium|low", "references": ["string"]}
+  ],
+  "researchProblems": [
+    {"id": "P1", "statement": "string", "significance": "string", "relatedGaps": ["string"]}
+  ],
+  "hypotheses": [
+    {"id": "H1", "hypothesis": "string", "variables": {"independent": ["string"], "dependent": ["string"], "controlled": ["string"]}, "methodology": "string"}
+  ],
+  "implementationPlan": {
+    "phase": "string", "tasks": ["string"], "timeline": "string", "resources": ["string"], "milestones": ["string"]
+  },
+  "methodology": "string",
+  "evaluationMetrics": [
+    {"category": "string", "description": "string", "metrics": [{"name": "string", "description": "string", "target": "string", "visualization": "bar|line|scatter|heatmap|confusion_matrix"}]}
+  ],
+  "xaiPlan": {
+    "techniques": [{"name": "string", "description": "string", "library": "string", "useCase": "string"}],
+    "implementation": "string",
+    "expectedOutputs": ["string"],
+    "visualizations": [{"title": "string", "type": "feature_importance|attention|gradient|shap_summary|lime_explanation", "description": "string", "interpretation": "string"}]
+  }
+}
+
+Provide 3-5 research gaps, 2-4 research problems, and 2-4 hypotheses. Keep every array populated with meaningful values. Favor concise, concrete statements over generic academic filler. Output ONLY the JSON, no markdown code blocks.`
 }
 
 function extractStructuredOutput(payload) {
