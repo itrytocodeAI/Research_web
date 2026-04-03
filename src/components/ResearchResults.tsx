@@ -1,5 +1,19 @@
+import type { ComponentType, ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, Download, Eye, CheckCircle, Clock } from 'lucide-react'
+import {
+  BarChart3,
+  CheckCircle,
+  Clock,
+  Download,
+  Eye,
+  FileText,
+  FlaskConical,
+  Layers3,
+  Lightbulb,
+  ListChecks,
+  Microscope,
+  ShieldCheck,
+} from 'lucide-react'
 import type { ResearchOutput, Document as ResearchDocument } from '../types'
 
 interface ResearchResultsProps {
@@ -9,6 +23,7 @@ interface ResearchResultsProps {
   onDownloadWord: () => void
   onUploadToDrive: () => void
   isUploading?: boolean
+  driveUploadAvailable?: boolean
 }
 
 export function ResearchResults({
@@ -18,6 +33,7 @@ export function ResearchResults({
   onDownloadWord,
   onUploadToDrive,
   isUploading,
+  driveUploadAvailable = true,
 }: ResearchResultsProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
@@ -26,38 +42,23 @@ export function ResearchResults({
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-r from-primary to-accent p-8 rounded-2xl text-white"
       >
-        <h2 className="text-3xl font-bold mb-2">Research Complete!</h2>
+        <h2 className="text-3xl font-bold mb-2">Research Complete</h2>
         <p className="text-white/90">{research.topic}</p>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-card rounded-xl border border-border p-6"
-          >
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FileText className="text-primary" size={20} />
-              Executive Summary
-            </h3>
-            <p className="text-muted-foreground leading-relaxed">
+          <Section icon={FileText} title="Executive Summary" delay={0.05}>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {research.executiveSummary}
             </p>
-          </motion.section>
+          </Section>
 
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-card rounded-xl border border-border p-6"
-          >
-            <h3 className="text-xl font-bold mb-4">Research Gaps</h3>
+          <Section icon={Lightbulb} title="Research Gaps" delay={0.1}>
             <div className="space-y-4">
               {research.researchGaps.map((gap, idx) => (
-                <div key={idx} className="p-4 rounded-lg bg-secondary/50">
-                  <div className="flex items-start justify-between mb-2">
+                <div key={`${gap.title}-${idx}`} className="p-4 rounded-lg bg-secondary/50">
+                  <div className="flex items-start justify-between gap-4 mb-2">
                     <h4 className="font-semibold">{gap.title}</h4>
                     <span
                       className={`px-2 py-1 rounded text-xs font-medium ${
@@ -72,57 +73,208 @@ export function ResearchResults({
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">{gap.description}</p>
+                  {gap.references && gap.references.length > 0 && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      References: {gap.references.join(', ')}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
-          </motion.section>
+          </Section>
 
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-card rounded-xl border border-border p-6"
-          >
-            <h3 className="text-xl font-bold mb-4">Proposed Hypotheses</h3>
+          <Section icon={Microscope} title="Research Problems" delay={0.15}>
             <div className="space-y-4">
-              {research.hypotheses.map((hypothesis, idx) => (
-                <div key={idx} className="p-4 rounded-lg bg-secondary/50">
+              {research.researchProblems.map((problem) => (
+                <div key={problem.id} className="p-4 rounded-lg bg-secondary/50">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
+                      {problem.id}
+                    </div>
+                    <p className="font-medium">{problem.statement}</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{problem.significance}</p>
+                  {problem.relatedGaps.length > 0 && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Related gaps: {problem.relatedGaps.join(', ')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section icon={FlaskConical} title="Proposed Hypotheses" delay={0.2}>
+            <div className="space-y-4">
+              {research.hypotheses.map((hypothesis) => (
+                <div key={hypothesis.id} className="p-4 rounded-lg bg-secondary/50">
                   <div className="flex items-start gap-3 mb-2">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                       {hypothesis.id}
                     </div>
-                    <p className="font-medium">{hypothesis.hypothesis}</p>
-                  </div>
-                  <div className="ml-11 mt-3 grid grid-cols-3 gap-3 text-xs">
-                    <div>
-                      <span className="font-semibold text-primary">Independent:</span>
-                      <div className="text-muted-foreground">
-                        {hypothesis.variables.independent.join(', ')}
+                    <div className="space-y-3 flex-1">
+                      <p className="font-medium">{hypothesis.hypothesis}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                        <DetailGroup label="Independent" values={hypothesis.variables.independent} />
+                        <DetailGroup label="Dependent" values={hypothesis.variables.dependent} />
+                        <DetailGroup label="Controlled" values={hypothesis.variables.controlled} />
                       </div>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-primary">Dependent:</span>
-                      <div className="text-muted-foreground">
-                        {hypothesis.variables.dependent.join(', ')}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-primary">Controlled:</span>
-                      <div className="text-muted-foreground">
-                        {hypothesis.variables.controlled.join(', ')}
-                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-semibold text-foreground">Methodology:</span>{' '}
+                        {hypothesis.methodology}
+                      </p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </motion.section>
+          </Section>
+
+          <Section icon={ListChecks} title="Implementation Plan" delay={0.25}>
+            <div className="space-y-5">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">Phase:</span>{' '}
+                {research.implementationPlan.phase}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">Timeline:</span>{' '}
+                {research.implementationPlan.timeline}
+              </p>
+
+              <div>
+                <h4 className="font-semibold mb-2">Tasks</h4>
+                <ul className="space-y-2">
+                  {research.implementationPlan.tasks.map((task, index) => (
+                    <li key={`${task}-${index}`} className="text-sm text-muted-foreground flex gap-2">
+                      <span className="text-primary">•</span>
+                      <span>{task}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold mb-2">Resources</h4>
+                  <ul className="space-y-2">
+                    {research.implementationPlan.resources.map((resource, index) => (
+                      <li key={`${resource}-${index}`} className="text-sm text-muted-foreground flex gap-2">
+                        <span className="text-primary">•</span>
+                        <span>{resource}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Milestones</h4>
+                  <ul className="space-y-2">
+                    {research.implementationPlan.milestones.map((milestone, index) => (
+                      <li key={`${milestone}-${index}`} className="text-sm text-muted-foreground flex gap-2">
+                        <span className="text-primary">•</span>
+                        <span>{milestone}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          <Section icon={Layers3} title="Methodology" delay={0.3}>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {research.methodology}
+            </p>
+          </Section>
+
+          <Section icon={BarChart3} title="Evaluation Metrics" delay={0.35}>
+            <div className="space-y-4">
+              {research.evaluationMetrics.map((category) => (
+                <div key={category.category} className="p-4 rounded-lg bg-secondary/50">
+                  <h4 className="font-semibold mb-1">{category.category}</h4>
+                  <p className="text-sm text-muted-foreground mb-3">{category.description}</p>
+                  <div className="space-y-2">
+                    {category.metrics.map((metric) => (
+                      <div
+                        key={`${category.category}-${metric.name}`}
+                        className="flex flex-col md:flex-row md:items-start md:justify-between gap-1 border-b border-border/60 pb-2 last:border-b-0 last:pb-0"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{metric.name}</p>
+                          <p className="text-xs text-muted-foreground">{metric.description}</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Target: {metric.target} • View: {metric.visualization}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section icon={ShieldCheck} title="XAI Plan" delay={0.4}>
+            <div className="space-y-5">
+              <div>
+                <h4 className="font-semibold mb-2">Techniques</h4>
+                <div className="space-y-3">
+                  {research.xaiPlan.techniques.map((technique) => (
+                    <div key={technique.name} className="p-4 rounded-lg bg-secondary/50">
+                      <p className="font-medium">{technique.name}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{technique.description}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Library: {technique.library} • Use case: {technique.useCase}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Implementation Strategy</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {research.xaiPlan.implementation}
+                </p>
+              </div>
+
+              {research.xaiPlan.expectedOutputs.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Expected Outputs</h4>
+                  <ul className="space-y-2">
+                    {research.xaiPlan.expectedOutputs.map((output, index) => (
+                      <li key={`${output}-${index}`} className="text-sm text-muted-foreground flex gap-2">
+                        <span className="text-primary">•</span>
+                        <span>{output}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {research.xaiPlan.visualizations.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Planned Visualizations</h4>
+                  <div className="space-y-3">
+                    {research.xaiPlan.visualizations.map((plot) => (
+                      <div key={plot.title} className="p-4 rounded-lg bg-secondary/50">
+                        <p className="font-medium">{plot.title}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{plot.description}</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Type: {plot.type} • Interpretation: {plot.interpretation}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Section>
         </div>
 
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.2 }}
           className="space-y-6"
         >
           <div className="bg-card rounded-xl border border-border p-6">
@@ -137,8 +289,9 @@ export function ResearchResults({
               </button>
               <button
                 onClick={onUploadToDrive}
-                disabled={isUploading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                disabled={isUploading || !driveUploadAvailable}
+                title={driveUploadAvailable ? 'Upload generated files to cloud storage' : 'Cloud export is not configured yet'}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUploading ? (
                   <>
@@ -146,11 +299,12 @@ export function ResearchResults({
                     <span>Uploading...</span>
                   </>
                 ) : (
-                  <>
-                    <span>Save to Google Drive</span>
-                  </>
+                  <span>{driveUploadAvailable ? 'Upload to Cloud Storage' : 'Cloud Export Unavailable'}</span>
                 )}
               </button>
+              <p className="text-xs text-muted-foreground">
+                Word export downloads locally. You can also upload the generated export bundle to Supabase Storage when configured.
+              </p>
             </div>
           </div>
 
@@ -184,8 +338,64 @@ export function ResearchResults({
               ))}
             </div>
           </div>
+
+          {research.sources.length > 0 && (
+            <div className="bg-card rounded-xl border border-border p-6">
+              <h3 className="text-lg font-bold mb-4">Sources</h3>
+              <div className="space-y-3">
+                {research.sources.map((source, index) => (
+                  <a
+                    key={`${source.url}-${index}`}
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block p-3 rounded-lg border border-border hover:border-primary hover:bg-secondary/40 transition-colors"
+                  >
+                    <p className="text-sm font-medium">{source.title}</p>
+                    <p className="text-xs text-muted-foreground break-all">{source.url}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </motion.div>
       </div>
+    </div>
+  )
+}
+
+function Section({
+  children,
+  delay,
+  icon: Icon,
+  title,
+}: {
+  children: ReactNode
+  delay: number
+  icon: ComponentType<{ size?: number; className?: string }>
+  title: string
+}) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="bg-card rounded-xl border border-border p-6"
+    >
+      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+        <Icon className="text-primary" size={20} />
+        {title}
+      </h3>
+      {children}
+    </motion.section>
+  )
+}
+
+function DetailGroup({ label, values }: { label: string; values: string[] }) {
+  return (
+    <div>
+      <span className="font-semibold text-primary">{label}:</span>
+      <div className="text-muted-foreground">{values.length > 0 ? values.join(', ') : 'Not specified'}</div>
     </div>
   )
 }

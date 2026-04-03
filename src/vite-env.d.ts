@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_BLINK_PROJECT_ID: string
-  readonly VITE_BLINK_PUBLISHABLE_KEY: string
+  readonly VITE_API_BASE_URL: string | undefined
+  readonly VITE_CLERK_PUBLISHABLE_KEY: string
 }
 
 interface ImportMeta {

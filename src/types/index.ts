@@ -48,6 +48,12 @@ export interface ResearchOutput {
   methodology: string
   evaluationMetrics: EvaluationMetric[]
   xaiPlan: XAIPlan
+  sources: ResearchSource[]
+}
+
+export interface ResearchSource {
+  title: string
+  url: string
 }
 
 export interface EvaluationMetric {

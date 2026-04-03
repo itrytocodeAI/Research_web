@@ -1,19 +1,25 @@
 import { useState } from 'react'
-import { Search, Sparkles, ArrowRight } from 'lucide-react'
-import { Button } from '@blinkdotnew/ui'
+import { ArrowRight, FileText, Lightbulb, Search, Sparkles, Telescope } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 interface TopicInputProps {
   onSubmit: (topic: string) => void
   isLoading?: boolean
+  quotaBanner?: {
+    limitLabel: string
+    remainingLabel: string
+    refreshLabel: string
+    blocked: boolean
+  }
 }
 
-export function TopicInput({ onSubmit, isLoading }: TopicInputProps) {
+export function TopicInput({ onSubmit, isLoading, quotaBanner }: TopicInputProps) {
   const [topic, setTopic] = useState('')
+  const isDisabled = Boolean(isLoading || quotaBanner?.blocked)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (topic.trim() && !isLoading) {
+    if (topic.trim() && !isDisabled) {
       onSubmit(topic.trim())
     }
   }
@@ -53,6 +59,17 @@ export function TopicInput({ onSubmit, isLoading }: TopicInputProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="relative">
+        {quotaBanner && (
+          <div className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
+            quotaBanner.blocked
+              ? 'border-red-200 bg-red-50 text-red-800'
+              : 'border-blue-200 bg-blue-50 text-blue-800'
+          }`}>
+            <p className="font-semibold">{quotaBanner.limitLabel}</p>
+            <p>{quotaBanner.remainingLabel}</p>
+            <p>Refresh: {quotaBanner.refreshLabel}</p>
+          </div>
+        )}
         <div className="relative">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground" size={24} />
           <input
@@ -61,13 +78,12 @@ export function TopicInput({ onSubmit, isLoading }: TopicInputProps) {
             onChange={(e) => setTopic(e.target.value)}
             placeholder="Enter your research topic..."
             className="w-full h-20 pl-16 pr-32 text-lg border-2 border-border rounded-2xl bg-card focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all"
-            disabled={isLoading}
+            disabled={isDisabled}
           />
-          <Button
+          <button
             type="submit"
-            size="lg"
-            disabled={!topic.trim() || isLoading}
-            className="absolute right-3 top-1/2 -translate-y-1/2 h-14 px-8"
+            disabled={!topic.trim() || isDisabled}
+            className="absolute right-3 top-1/2 -translate-y-1/2 h-14 px-8 inline-flex items-center justify-center rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {isLoading ? (
               <>
@@ -80,7 +96,7 @@ export function TopicInput({ onSubmit, isLoading }: TopicInputProps) {
                 <ArrowRight className="ml-2" size={20} />
               </>
             )}
-          </Button>
+          </button>
         </div>
       </form>
 
@@ -95,9 +111,9 @@ export function TopicInput({ onSubmit, isLoading }: TopicInputProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + idx * 0.1 }}
-              onClick={() => !isLoading && onSubmit(example)}
+              onClick={() => !isDisabled && onSubmit(example)}
               className="px-4 py-2 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-sm"
-              disabled={isLoading}
+              disabled={isDisabled}
             >
               {example}
             </motion.button>
@@ -112,7 +128,7 @@ export function TopicInput({ onSubmit, isLoading }: TopicInputProps) {
           transition={{ delay: 0.4 }}
           className="text-center p-6 rounded-xl bg-card border border-border"
         >
-          <div className="text-4xl mb-4">🔍</div>
+          <Telescope className="w-10 h-10 mx-auto mb-4 text-primary" />
           <h3 className="font-semibold text-lg mb-2">Deep Research</h3>
           <p className="text-sm text-muted-foreground">
             AI-powered comprehensive analysis of your topic with current information
@@ -125,7 +141,7 @@ export function TopicInput({ onSubmit, isLoading }: TopicInputProps) {
           transition={{ delay: 0.5 }}
           className="text-center p-6 rounded-xl bg-card border border-border"
         >
-          <div className="text-4xl mb-4">💡</div>
+          <Lightbulb className="w-10 h-10 mx-auto mb-4 text-primary" />
           <h3 className="font-semibold text-lg mb-2">Gap Analysis</h3>
           <p className="text-sm text-muted-foreground">
             Identify research gaps and formulate testable hypotheses
@@ -138,7 +154,7 @@ export function TopicInput({ onSubmit, isLoading }: TopicInputProps) {
           transition={{ delay: 0.6 }}
           className="text-center p-6 rounded-xl bg-card border border-border"
         >
-          <div className="text-4xl mb-4">📄</div>
+          <FileText className="w-10 h-10 mx-auto mb-4 text-primary" />
           <h3 className="font-semibold text-lg mb-2">Auto Documentation</h3>
           <p className="text-sm text-muted-foreground">
             Generate Word docs and Markdown files automatically

@@ -1,30 +1,32 @@
 import { useState } from 'react'
 import { X, Download, Copy, Check } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { Document as ResearchDocument } from '../types'
 
 interface DocumentViewerProps {
-  document: ResearchDocument
+  researchDocument: ResearchDocument
   onClose: () => void
 }
 
-export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
+export function DocumentViewer({ researchDocument, onClose }: DocumentViewerProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(document.content)
+    navigator.clipboard.writeText(researchDocument.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   const handleDownload = () => {
-    const blob = new Blob([document.content], { type: 'text/markdown' })
+    const blob = new Blob([researchDocument.content], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
+    const a = window.document.createElement('a')
     a.href = url
-    a.download = document.name
-    document.body.appendChild(a)
+    a.download = researchDocument.name
+    window.document.body.appendChild(a)
     a.click()
-    document.body.removeChild(a)
+    window.document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
 
@@ -33,9 +35,9 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
       <div className="bg-background rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b">
           <div>
-            <h2 className="text-2xl font-bold">{document.name}</h2>
+            <h2 className="text-2xl font-bold">{researchDocument.name}</h2>
             <p className="text-sm text-muted-foreground">
-              {document.type === 'markdown' ? 'Markdown Document' : 'Word Document'}
+              {researchDocument.type === 'markdown' ? 'Markdown Document' : 'Word Document'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -62,9 +64,17 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
           </div>
         </div>
         <div className="flex-1 overflow-auto p-6">
-          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
-            {document.content}
-          </pre>
+          {researchDocument.type === 'markdown' ? (
+            <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-code:text-foreground">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {researchDocument.content}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+              {researchDocument.content}
+            </pre>
+          )}
         </div>
       </div>
     </div>

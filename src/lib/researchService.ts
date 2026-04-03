@@ -1,266 +1,464 @@
-import { blink } from './blink'
-import type { 
-  ResearchOutput, 
-  ResearchGap, 
-  ResearchProblem, 
-  Hypothesis, 
-  ImplementationPlan,
+import type {
   EvaluationMetric,
+  Hypothesis,
+  ImplementationPlan,
+  Metric,
+  ResearchGap,
+  ResearchOutput,
+  ResearchProblem,
+  ResearchSource,
   XAIPlan,
+  XAIPlot,
   XAITechnique,
-  XAIPlot
 } from '../types'
+import { getApiUrl } from './api'
+
+type JsonRecord = Record<string, unknown>
 
 export class ResearchService {
-  async conductDeepResearch(topic: string): Promise<ResearchOutput> {
-    const prompt = this.buildResearchPrompt(topic)
-    
-    const response = await blink.ai.generateText({
-      prompt,
-      search: true,
-      maxSteps: 15,
+  async conductDeepResearch(topic: string, authToken: string): Promise<ResearchOutput> {
+    const response = await fetch(getApiUrl('/api/research'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ topic }),
     })
 
-    return this.parseResearchResponse(response.text, topic)
+    const payload = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      const message = this.getErrorMessage(payload)
+      const error = new Error(message) as Error & {
+        quotaResetPolicy?: string
+        status?: number
+      }
+
+      if (payload && this.isRecord(payload) && typeof payload.quotaResetPolicy === 'string') {
+        error.quotaResetPolicy = payload.quotaResetPolicy
+      }
+
+      error.status = response.status
+      throw error
+    }
+
+    if (this.isRecord(payload) && this.isRecord(payload.research)) {
+      return this.parseResearchObject(
+        payload.research,
+        topic,
+        Array.isArray(payload.sources) ? payload.sources : []
+      )
+    }
+
+    if (this.isRecord(payload) && typeof payload.text === 'string') {
+      return this.parseResearchResponse(
+        payload.text,
+        topic,
+        Array.isArray(payload.sources) ? payload.sources : []
+      )
+    }
+
+    throw new Error('Research API returned an unexpected payload.')
   }
 
-  private buildResearchPrompt(topic: string): string {
-    return `You are an expert research analyst. Conduct a comprehensive deep research analysis on the topic: "${topic}"
+  private getErrorMessage(payload: unknown): string {
+    if (this.isRecord(payload) && typeof payload.error === 'string') {
+      return payload.error
+    }
 
-Please structure your analysis and generate:
-
-1. **Executive Summary** (2-3 paragraphs)
-   - Overview of the research area
-   - Current state of research
-   - Key opportunities
-
-2. **Research Gaps** (3-5 gaps)
-   For each gap provide:
-   - Title of the research gap
-   - Detailed description
-   - Severity level (high/medium/low)
-   - Potential impact
-
-3. **Research Problems** (2-4 problems)
-   For each problem provide:
-   - Clear problem statement
-   - Significance and relevance
-   - Related research gaps
-
-4. **Hypotheses** (2-4 hypotheses)
-   For each hypothesis provide:
-   - Clear hypothesis statement
-   - Independent variables
-   - Dependent variables
-   - Controlled variables
-   - Suggested methodology
-
-5. **Implementation Plan**
-   - Phase 1: Data Collection & Preparation
-   - Phase 2: Model Development
-   - Phase 3: Evaluation & Validation
-   - Timeline for each phase
-   - Required resources
-   - Key milestones
-
-6. **Methodology Overview**
-   - Research design approach
-   - Data collection methods
-   - Analysis techniques
-   - Validation strategies
-
-7. **Evaluation Metrics** (categorize as follows):
-   - Performance Metrics (accuracy, precision, recall, F1-score, etc.)
-   - Efficiency Metrics (training time, inference speed, resource usage)
-   - Explainability Metrics (for XAI)
-   - Domain-specific metrics relevant to the topic
-
-8. **XAI (Explainable AI) Implementation Plan**
-   - Recommended XAI techniques (SHAP, LIME, Grad-CAM, etc.)
-   - Implementation approach for each
-   - Expected visualizations
-   - Interpretation strategies
-
-Format the output in clear, structured sections with proper headings and bullet points.`
+    return 'Research request failed.'
   }
 
-  private parseResearchResponse(text: string, topic: string): ResearchOutput {
-    // Parse the AI response into structured data
-    const sections = this.extractSections(text)
-    
+  private parseResearchResponse(text: string, topic: string, sources: unknown[] = []): ResearchOutput {
+    const parsed = this.tryParseJson(text)
+
+    if (!parsed) {
+      return this.buildFallbackOutput(topic, sources)
+    }
+
+    return this.parseResearchObject(parsed, topic, sources)
+  }
+
+  private parseResearchObject(parsed: JsonRecord, topic: string, sources: unknown[] = []): ResearchOutput {
     return {
       topic,
-      executiveSummary: sections.executiveSummary || this.generateExecutiveSummary(topic),
-      researchGaps: sections.researchGaps || this.generateSampleGaps(topic),
-      researchProblems: sections.researchProblems || this.generateSampleProblems(),
-      hypotheses: sections.hypotheses || this.generateSampleHypotheses(),
-      implementationPlan: sections.implementationPlan || this.generateSampleImplementationPlan(),
-      methodology: sections.methodology || this.generateMethodology(),
-      evaluationMetrics: sections.evaluationMetrics || this.generateEvaluationMetrics(),
-      xaiPlan: sections.xaiPlan || this.generateXAIPlan(),
+      executiveSummary: this.readString(parsed.executiveSummary) || this.generateExecutiveSummary(topic),
+      researchGaps: this.parseResearchGaps(parsed.researchGaps, topic),
+      researchProblems: this.parseResearchProblems(parsed.researchProblems),
+      hypotheses: this.parseHypotheses(parsed.hypotheses),
+      implementationPlan: this.parseImplementationPlan(parsed.implementationPlan),
+      methodology: this.readString(parsed.methodology) || this.generateMethodology(),
+      evaluationMetrics: this.parseEvaluationMetrics(parsed.evaluationMetrics),
+      xaiPlan: this.parseXAIPlan(parsed.xaiPlan),
+      sources: this.parseSources(sources),
     }
   }
 
-  private extractSections(text: string) {
-    // Extract structured sections from the response
-    const sections: any = {}
-    
-    const gapMatch = text.match(/\*\*Research Gaps\*\*(.*?)(?=\*\*|$)/s)
-    if (gapMatch) {
-      sections.researchGaps = this.parseResearchGaps(gapMatch[1])
-    }
+  private tryParseJson(text: string): JsonRecord | null {
+    const candidates = [text.trim(), this.extractJsonObject(text)]
 
-    const hypothesisMatch = text.match(/\*\*Hypotheses\*\*(.*?)(?=\*\*|$)/s)
-    if (hypothesisMatch) {
-      sections.hypotheses = this.parseHypotheses(hypothesisMatch[1])
-    }
+    for (const candidate of candidates) {
+      if (!candidate) continue
 
-    const planMatch = text.match(/\*\*Implementation Plan\*\*(.*?)(?=\*\*|$)/s)
-    if (planMatch) {
-      sections.implementationPlan = this.parseImplementationPlan(planMatch[1])
-    }
-
-    const metricsMatch = text.match(/\*\*Evaluation Metrics\*\*(.*?)(?=\*\*|$)/s)
-    if (metricsMatch) {
-      sections.evaluationMetrics = this.parseEvaluationMetrics(metricsMatch[1])
-    }
-
-    const xaiMatch = text.match(/\*\*XAI.*?Implementation Plan\*\*(.*?)$/s)
-    if (xaiMatch) {
-      sections.xaiPlan = this.parseXAIPlan(xaiMatch[1])
-    }
-
-    return sections
-  }
-
-  private parseResearchGaps(text: string): ResearchGap[] {
-    // Parse research gaps from text
-    const gaps: ResearchGap[] = []
-    const gapBlocks = text.split(/\d+\.\s+\*\*|-\s+\*\*/).filter(Boolean)
-    
-    gapBlocks.slice(0, 5).forEach((block, i) => {
-      const lines = block.split('\n').filter(l => l.trim())
-      if (lines.length > 0) {
-        gaps.push({
-          title: lines[0].replace(/\*\*/g, '').trim(),
-          description: lines.slice(1, 3).join(' ').trim(),
-          severity: i < 2 ? 'high' : i < 4 ? 'medium' : 'low',
-        })
+      try {
+        const parsed = JSON.parse(this.sanitizeJson(candidate))
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return parsed as JsonRecord
+        }
+      } catch {
+        // Try the next candidate.
       }
-    })
+    }
 
-    return gaps.length > 0 ? gaps : this.generateSampleGaps('')
+    return null
   }
 
-  private parseHypotheses(text: string): Hypothesis[] {
-    const hypotheses: Hypothesis[] = []
-    const blocks = text.split(/\d+\.\s+|\n-\s+/).filter(Boolean)
-    
-    blocks.slice(0, 4).forEach((block, i) => {
-      if (block.trim()) {
-        hypotheses.push({
-          id: `H${i + 1}`,
-          hypothesis: block.split('\n')[0].replace(/\*\*/g, '').trim(),
+  private extractJsonObject(text: string): string | null {
+    const firstBrace = text.indexOf('{')
+    const lastBrace = text.lastIndexOf('}')
+
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+      return null
+    }
+
+    return text.slice(firstBrace, lastBrace + 1)
+  }
+
+  private sanitizeJson(text: string): string {
+    return text
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim()
+  }
+
+  private parseResearchGaps(value: unknown, topic: string): ResearchGap[] {
+    if (!Array.isArray(value)) {
+      return this.generateSampleGaps(topic)
+    }
+
+    const gaps = value
+      .map((item) => {
+        if (!this.isRecord(item)) return null
+
+        const title = this.readString(item.title)
+        const description = this.readString(item.description)
+
+        if (!title || !description) return null
+
+        return {
+          title,
+          description,
+          severity: this.normalizeSeverity(item.severity),
+          references: this.readStringArray(item.references),
+        } satisfies ResearchGap
+      })
+      .filter(Boolean) as ResearchGap[]
+
+    return gaps.length > 0 ? gaps : this.generateSampleGaps(topic)
+  }
+
+  private parseResearchProblems(value: unknown): ResearchProblem[] {
+    if (!Array.isArray(value)) {
+      return this.generateSampleProblems()
+    }
+
+    const problems = value
+      .map((item, index) => {
+        if (!this.isRecord(item)) return null
+
+        const statement = this.readString(item.statement)
+        const significance = this.readString(item.significance)
+
+        if (!statement || !significance) return null
+
+        return {
+          id: this.readString(item.id) || `P${index + 1}`,
+          statement,
+          significance,
+          relatedGaps: this.readStringArray(item.relatedGaps),
+        } satisfies ResearchProblem
+      })
+      .filter((item): item is ResearchProblem => Boolean(item))
+
+    return problems.length > 0 ? problems : this.generateSampleProblems()
+  }
+
+  private parseHypotheses(value: unknown): Hypothesis[] {
+    if (!Array.isArray(value)) {
+      return this.generateSampleHypotheses()
+    }
+
+    const hypotheses = value
+      .map((item, index) => {
+        if (!this.isRecord(item)) return null
+
+        const hypothesis = this.readString(item.hypothesis)
+        const methodology = this.readString(item.methodology)
+        const variables = this.isRecord(item.variables) ? item.variables : {}
+
+        if (!hypothesis || !methodology) return null
+
+        return {
+          id: this.readString(item.id) || `H${index + 1}`,
+          hypothesis,
           variables: {
-            independent: ['Variable A', 'Variable B'],
-            dependent: ['Outcome'],
-            controlled: ['Control 1', 'Control 2'],
+            independent: this.readStringArray(variables.independent),
+            dependent: this.readStringArray(variables.dependent),
+            controlled: this.readStringArray(variables.controlled),
           },
-          methodology: 'Experimental approach with controlled conditions',
-        })
-      }
-    })
+          methodology,
+        } satisfies Hypothesis
+      })
+      .filter((item): item is Hypothesis => Boolean(item))
 
     return hypotheses.length > 0 ? hypotheses : this.generateSampleHypotheses()
   }
 
-  private parseImplementationPlan(text: string): ImplementationPlan {
+  private parseImplementationPlan(value: unknown): ImplementationPlan {
+    if (!this.isRecord(value)) {
+      return this.generateSampleImplementationPlan()
+    }
+
+    const tasks = this.readStringArray(value.tasks)
+    const resources = this.readStringArray(value.resources)
+    const milestones = this.readStringArray(value.milestones)
+
+    if (tasks.length === 0) {
+      return this.generateSampleImplementationPlan()
+    }
+
     return {
-      phase: 'Multi-phase Implementation',
-      tasks: text.split('\n').filter(l => l.trim() && l.includes('-')).map(l => l.replace('-', '').trim()),
-      timeline: '12-18 months',
-      resources: ['Dataset', 'Compute Resources', 'Expert Team', 'Tools'],
-      milestones: ['Phase 1 Complete', 'Phase 2 Complete', 'Final Validation'],
+      phase: this.readString(value.phase) || 'Structured implementation plan',
+      tasks,
+      timeline: this.readString(value.timeline) || '12-18 months',
+      resources: resources.length > 0 ? resources : ['Dataset access', 'Compute resources', 'Research team'],
+      milestones: milestones.length > 0 ? milestones : ['Planning complete', 'Implementation complete', 'Validation complete'],
     }
   }
 
-  private parseEvaluationMetrics(text: string): EvaluationMetric[] {
-    const metrics: EvaluationMetric[] = [
-      {
-        category: 'Performance',
-        metrics: [],
-        description: 'Model performance metrics',
-      },
-      {
-        category: 'Efficiency',
-        metrics: [],
-        description: 'Resource utilization metrics',
-      },
-    ]
-    
-    text.split('\n').forEach(line => {
-      if (line.includes('-')) {
-        const metric = line.replace('-', '').trim()
-        if (metric) {
-          metrics[0].metrics.push({
-            name: metric,
-            description: metric,
-            target: 'Optimized',
-            visualization: 'bar',
-          })
-        }
-      }
-    })
+  private parseEvaluationMetrics(value: unknown): EvaluationMetric[] {
+    if (!Array.isArray(value)) {
+      return this.generateEvaluationMetrics()
+    }
 
-    return metrics.length > 0 ? metrics : this.generateEvaluationMetrics()
+    const categories = value
+      .map((item) => {
+        if (!this.isRecord(item) || !Array.isArray(item.metrics)) return null
+
+        const metrics = item.metrics
+          .map((metric) => this.parseMetric(metric))
+          .filter((metric): metric is Metric => Boolean(metric))
+
+        if (metrics.length === 0) return null
+
+        return {
+          category: this.readString(item.category) || 'Evaluation Metrics',
+          description: this.readString(item.description) || 'Model and system evaluation metrics',
+          metrics,
+        } satisfies EvaluationMetric
+      })
+      .filter((item): item is EvaluationMetric => Boolean(item))
+
+    return categories.length > 0 ? categories : this.generateEvaluationMetrics()
   }
 
-  private parseXAIPlan(text: string): XAIPlan {
+  private parseMetric(value: unknown): Metric | null {
+    if (!this.isRecord(value)) return null
+
+    const name = this.readString(value.name)
+    const description = this.readString(value.description)
+    const target = this.readString(value.target)
+
+    if (!name || !description || !target) return null
+
     return {
-      techniques: [
-        {
-          name: 'SHAP',
-          description: 'SHapley Additive exPlanations',
-          library: 'shap',
-          useCase: 'Feature importance analysis',
-        },
-      ],
-      implementation: 'Implement SHAP for global and local explanations',
-      expectedOutputs: ['Feature importance plots', 'Dependence plots'],
-      visualizations: [],
+      name,
+      description,
+      target,
+      visualization: this.normalizeMetricVisualization(value.visualization),
     }
+  }
+
+  private parseXAIPlan(value: unknown): XAIPlan {
+    if (!this.isRecord(value)) {
+      return this.generateXAIPlan()
+    }
+
+    const techniques = Array.isArray(value.techniques)
+      ? value.techniques
+          .map((item) => this.parseXAITechnique(item))
+          .filter((item): item is XAITechnique => Boolean(item))
+      : []
+
+    const visualizations = Array.isArray(value.visualizations)
+      ? value.visualizations
+          .map((item) => this.parseXAIPlot(item))
+          .filter((item): item is XAIPlot => Boolean(item))
+      : []
+
+    if (techniques.length === 0) {
+      return this.generateXAIPlan()
+    }
+
+    return {
+      techniques,
+      implementation: this.readString(value.implementation) || 'Integrate explainability methods into training and evaluation workflows.',
+      expectedOutputs: this.readStringArray(value.expectedOutputs),
+      visualizations,
+    }
+  }
+
+  private parseXAITechnique(value: unknown): XAITechnique | null {
+    if (!this.isRecord(value)) return null
+
+    const name = this.readString(value.name)
+    const description = this.readString(value.description)
+    const library = this.readString(value.library)
+    const useCase = this.readString(value.useCase)
+
+    if (!name || !description || !library || !useCase) return null
+
+    return { name, description, library, useCase }
+  }
+
+  private parseXAIPlot(value: unknown): XAIPlot | null {
+    if (!this.isRecord(value)) return null
+
+    const title = this.readString(value.title)
+    const description = this.readString(value.description)
+    const interpretation = this.readString(value.interpretation)
+
+    if (!title || !description || !interpretation) return null
+
+    return {
+      title,
+      type: this.normalizePlotType(value.type),
+      description,
+      interpretation,
+    }
+  }
+
+  private buildFallbackOutput(topic: string, sources: unknown[] = []): ResearchOutput {
+    return {
+      topic,
+      executiveSummary: this.generateExecutiveSummary(topic),
+      researchGaps: this.generateSampleGaps(topic),
+      researchProblems: this.generateSampleProblems(),
+      hypotheses: this.generateSampleHypotheses(),
+      implementationPlan: this.generateSampleImplementationPlan(),
+      methodology: this.generateMethodology(),
+      evaluationMetrics: this.generateEvaluationMetrics(),
+      xaiPlan: this.generateXAIPlan(),
+      sources: this.parseSources(sources),
+    }
+  }
+
+  private parseSources(value: unknown): ResearchSource[] {
+    if (!Array.isArray(value)) return []
+
+    return value
+      .map((item, index) => {
+        if (!this.isRecord(item)) return null
+
+        const url =
+          this.readString(item.url) ||
+          this.readString(item.link) ||
+          this.readString(item.href)
+        const title =
+          this.readString(item.title) ||
+          this.readString(item.name) ||
+          this.readString(item.label) ||
+          `Source ${index + 1}`
+
+        if (!url) return null
+
+        return { title, url } satisfies ResearchSource
+      })
+      .filter((item): item is ResearchSource => Boolean(item))
+  }
+
+  private isRecord(value: unknown): value is JsonRecord {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+  }
+
+  private readString(value: unknown): string {
+    return typeof value === 'string' ? value.trim() : ''
+  }
+
+  private readStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) return []
+
+    return value
+      .map((item) => this.readString(item))
+      .filter(Boolean)
+  }
+
+  private normalizeSeverity(value: unknown): ResearchGap['severity'] {
+    const severity = this.readString(value).toLowerCase()
+
+    if (severity === 'high' || severity === 'medium' || severity === 'low') {
+      return severity
+    }
+
+    return 'medium'
+  }
+
+  private normalizeMetricVisualization(value: unknown): Metric['visualization'] {
+    const visualization = this.readString(value).toLowerCase()
+
+    if (
+      visualization === 'bar' ||
+      visualization === 'line' ||
+      visualization === 'scatter' ||
+      visualization === 'heatmap' ||
+      visualization === 'confusion_matrix'
+    ) {
+      return visualization
+    }
+
+    return 'bar'
+  }
+
+  private normalizePlotType(value: unknown): XAIPlot['type'] {
+    const type = this.readString(value).toLowerCase()
+
+    if (
+      type === 'feature_importance' ||
+      type === 'attention' ||
+      type === 'gradient' ||
+      type === 'shap_summary' ||
+      type === 'lime_explanation'
+    ) {
+      return type
+    }
+
+    return 'feature_importance'
   }
 
   private generateExecutiveSummary(topic: string): string {
-    return `This research report provides a comprehensive analysis of ${topic}. The field has seen significant advances in recent years, with growing interest in developing innovative solutions. Key challenges remain in understanding fundamental mechanisms and achieving robust performance in real-world scenarios. This report identifies critical research gaps, formulates testable hypotheses, and proposes a structured implementation plan to advance knowledge in this domain.`
+    return `This research report provides a comprehensive analysis of ${topic}. The field has seen significant advances in recent years, with growing interest in developing innovative solutions. Key challenges remain in understanding fundamental mechanisms and achieving robust performance in real-world scenarios.
+
+This report identifies critical research gaps, formulates testable hypotheses, and proposes a structured implementation plan to advance knowledge in this domain. It is intended to help turn broad research interest into a practical roadmap for experimentation, evaluation, and explainability.`
   }
 
   private generateSampleGaps(topic: string): ResearchGap[] {
     return [
       {
         title: 'Limited Dataset Availability',
-        description: 'Insufficient high-quality labeled datasets for comprehensive analysis in the specific domain of ' + topic,
+        description: `Insufficient high-quality labeled datasets for comprehensive analysis in the domain of ${topic}.`,
         severity: 'high',
       },
       {
         title: 'Lack of Standardized Evaluation Metrics',
-        description: 'No consensus on evaluation metrics makes cross-study comparison challenging',
+        description: 'No consensus on evaluation metrics makes cross-study comparison difficult.',
         severity: 'medium',
       },
       {
         title: 'Interpretability and Explainability Gaps',
-        description: 'Current approaches lack transparency in decision-making processes',
+        description: 'Current approaches often lack transparency in decision-making processes.',
         severity: 'high',
-      },
-      {
-        title: 'Scalability Concerns',
-        description: 'Existing solutions do not scale effectively to large-scale deployments',
-        severity: 'medium',
-      },
-      {
-        title: 'Integration with Existing Systems',
-        description: 'Research findings rarely translate into practical implementations',
-        severity: 'low',
       },
     ]
   }
@@ -270,20 +468,14 @@ Format the output in clear, structured sections with proper headings and bullet 
       {
         id: 'P1',
         statement: 'How can we develop robust models that perform consistently across diverse datasets?',
-        significance: 'Critical for real-world deployment and generalization',
-        relatedGaps: ['RG1', 'RG4'],
+        significance: 'Critical for real-world deployment and generalization.',
+        relatedGaps: ['Limited Dataset Availability'],
       },
       {
         id: 'P2',
-        statement: 'What methodologies ensure interpretable and explainable AI systems?',
-        significance: 'Essential for trust and adoption in critical applications',
-        relatedGaps: ['RG3'],
-      },
-      {
-        id: 'P3',
-        statement: 'How to efficiently scale solutions while maintaining performance?',
-        significance: 'Necessary for practical large-scale implementation',
-        relatedGaps: ['RG4'],
+        statement: 'What methodologies best support interpretable and explainable AI systems?',
+        significance: 'Essential for trust, adoption, and regulatory acceptance.',
+        relatedGaps: ['Interpretability and Explainability Gaps'],
       },
     ]
   }
@@ -292,201 +484,93 @@ Format the output in clear, structured sections with proper headings and bullet 
     return [
       {
         id: 'H1',
-        hypothesis: 'Advanced preprocessing techniques will significantly improve model robustness',
+        hypothesis: 'Advanced preprocessing techniques will significantly improve model robustness.',
         variables: {
           independent: ['Preprocessing method', 'Data augmentation strategy'],
           dependent: ['Model accuracy', 'Generalization performance'],
-          controlled: ['Model architecture', 'Training duration', 'Hardware'],
+          controlled: ['Model architecture', 'Training duration', 'Hardware environment'],
         },
-        methodology: 'Controlled experiments with systematic variation of preprocessing techniques',
+        methodology: 'Controlled experiments with systematic variation of preprocessing techniques.',
       },
       {
         id: 'H2',
-        hypothesis: 'Explainable AI techniques will increase user trust and adoption rates',
+        hypothesis: 'Explainable AI techniques will increase user trust and adoption rates.',
         variables: {
           independent: ['XAI technique applied'],
           dependent: ['User trust score', 'Adoption rate'],
-          controlled: ['Domain', 'User background'],
+          controlled: ['Domain', 'User background', 'Task complexity'],
         },
-        methodology: 'User studies with pre/post trust measurements',
-      },
-      {
-        id: 'H3',
-        hypothesis: 'Transfer learning from related domains will accelerate development',
-        variables: {
-          independent: ['Source domain', 'Pre-training dataset size'],
-          dependent: ['Fine-tuning performance', 'Development time'],
-          controlled: ['Target domain', 'Model architecture'],
-        },
-        methodology: 'Ablation studies comparing transfer vs. from-scratch training',
+        methodology: 'User studies with pre- and post-explanation trust measurements.',
       },
     ]
   }
 
   private generateSampleImplementationPlan(): ImplementationPlan {
     return {
-      phase: 'Three-Phase Implementation',
+      phase: 'Three-phase implementation',
       tasks: [
-        'Phase 1: Dataset Collection & Preprocessing (Months 1-4)',
-        '  - Identify and acquire relevant datasets',
-        '  - Implement data cleaning and preprocessing pipeline',
-        '  - Establish data governance framework',
-        'Phase 2: Model Development & Training (Months 5-10)',
-        '  - Design and implement baseline models',
-        '  - Experiment with advanced architectures',
-        '  - Integrate XAI techniques',
-        'Phase 3: Evaluation & Validation (Months 11-14)',
-        '  - Conduct comprehensive evaluation',
-        '  - User studies and feedback collection',
-        '  - Documentation and dissemination',
+        'Collect and validate relevant datasets.',
+        'Develop baseline and advanced model variants.',
+        'Integrate explainability tooling into the model workflow.',
+        'Run quantitative evaluation and expert review.',
       ],
-      timeline: '14 months',
+      timeline: '12-14 months',
       resources: [
-        'Computational resources (GPU clusters)',
-        'Expert team (researchers, engineers)',
-        'Data acquisition budget',
+        'Dataset access',
+        'Compute resources',
+        'Research and engineering team',
         'Cloud infrastructure',
-        'Collaboration partners',
       ],
       milestones: [
-        'Dataset ready (Month 4)',
-        'Baseline model achieved (Month 6)',
-        'Advanced model with XAI (Month 10)',
-        'Final validation complete (Month 14)',
+        'Datasets prepared',
+        'Baseline model validated',
+        'Explainability workflow integrated',
+        'Final evaluation completed',
       ],
     }
   }
 
   private generateMethodology(): string {
-    return `This research will employ a mixed-methods approach combining quantitative analysis with qualitative insights.
+    return `This research uses a mixed-methods approach that combines quantitative experimentation with qualitative validation.
 
-**Research Design**: Applied research with iterative development cycles
-
-**Data Collection**:
-- Primary data through experiments and user studies
-- Secondary data from existing literature and public datasets
-- Synthetic data generation for edge cases
-
-**Analysis Techniques**:
-- Statistical analysis for quantitative metrics
-- Machine learning model development and training
-- Qualitative analysis of user feedback
-- Comparative studies with baseline methods
-
-**Validation Strategy**:
-- Cross-validation for model robustness
-- A/B testing for user-facing features
-- Expert review for domain-specific validation
-- Real-world pilot deployments`
+Data collection will combine literature review, public datasets, and controlled experiments. Analysis will include statistical evaluation, model benchmarking, ablation studies, and expert review. Validation will rely on cross-validation, robustness testing, and stakeholder feedback where appropriate.`
   }
 
   private generateEvaluationMetrics(): EvaluationMetric[] {
     return [
       {
         category: 'Performance Metrics',
-        description: 'Core model performance indicators',
+        description: 'Core model performance indicators.',
         metrics: [
           {
             name: 'Accuracy',
-            description: 'Overall classification/regression accuracy',
+            description: 'Overall predictive accuracy.',
             target: '>90%',
             visualization: 'bar',
           },
           {
-            name: 'Precision',
-            description: 'Positive predictive value',
-            target: '>85%',
-            visualization: 'bar',
-          },
-          {
-            name: 'Recall',
-            description: 'Sensitivity or true positive rate',
-            target: '>85%',
-            visualization: 'bar',
-          },
-          {
             name: 'F1-Score',
-            description: 'Harmonic mean of precision and recall',
+            description: 'Balanced measure of precision and recall.',
             target: '>87%',
             visualization: 'bar',
-          },
-          {
-            name: 'AUC-ROC',
-            description: 'Area under ROC curve',
-            target: '>0.95',
-            visualization: 'line',
           },
         ],
       },
       {
         category: 'Efficiency Metrics',
-        description: 'Resource utilization and scalability',
+        description: 'Resource utilization and runtime behavior.',
         metrics: [
           {
-            name: 'Training Time',
-            description: 'Time required for model training',
-            target: '<24 hours',
-            visualization: 'bar',
-          },
-          {
             name: 'Inference Speed',
-            description: 'Prediction latency',
+            description: 'Average prediction latency.',
             target: '<100ms',
             visualization: 'line',
           },
           {
             name: 'Memory Usage',
-            description: 'Peak memory consumption',
+            description: 'Peak memory consumption during inference.',
             target: '<16GB',
             visualization: 'bar',
-          },
-          {
-            name: 'Model Size',
-            description: 'Compressed model file size',
-            target: '<500MB',
-            visualization: 'bar',
-          },
-        ],
-      },
-      {
-        category: 'Explainability Metrics',
-        description: 'XAI technique effectiveness',
-        metrics: [
-          {
-            name: 'Feature Importance Correlation',
-            description: 'Correlation between XAI importance and actual impact',
-            target: '>0.8',
-            visualization: 'heatmap',
-          },
-          {
-            name: 'Explanation Fidelity',
-            description: 'How well explanations match model behavior',
-            target: '>85%',
-            visualization: 'bar',
-          },
-          {
-            name: 'User Comprehension Score',
-            description: 'User understanding of explanations',
-            target: '>80%',
-            visualization: 'line',
-          },
-        ],
-      },
-      {
-        category: 'Domain-Specific Metrics',
-        description: 'Application-specific performance indicators',
-        metrics: [
-          {
-            name: 'Domain Accuracy',
-            description: 'Performance on domain-specific cases',
-            target: '>88%',
-            visualization: 'bar',
-          },
-          {
-            name: 'Edge Case Coverage',
-            description: 'Performance on challenging edge cases',
-            target: '>75%',
-            visualization: 'scatter',
           },
         ],
       },
@@ -497,82 +581,36 @@ Format the output in clear, structured sections with proper headings and bullet 
     return {
       techniques: [
         {
-          name: 'SHAP (SHapley Additive exPlanations)',
-          description: 'Game theoretic approach to explain model predictions',
+          name: 'SHAP',
+          description: 'Game-theoretic feature attribution for global and local explanations.',
           library: 'shap',
-          useCase: 'Global and local feature importance analysis',
+          useCase: 'Feature importance analysis and per-prediction explanation.',
         },
         {
-          name: 'LIME (Local Interpretable Model-agnostic Explanations)',
-          description: 'Local surrogate model for explaining predictions',
+          name: 'LIME',
+          description: 'Local surrogate explanations for individual predictions.',
           library: 'lime',
-          useCase: 'Instance-level explanations for individual predictions',
-        },
-        {
-          name: 'Grad-CAM (Gradient-weighted Class Activation Mapping)',
-          description: 'Visual explanations for CNN-based models',
-          library: 'gradcam',
-          useCase: 'Localization and attention visualization',
-        },
-        {
-          name: 'Anchors',
-          description: 'Rule-based explanations using anchors',
-          library: 'alibi',
-          useCase: 'Interpretable if-then rules for predictions',
+          useCase: 'Instance-level explanation for model outputs.',
         },
       ],
-      implementation: `Implementation Strategy:
-1. Integrate SHAP for comprehensive feature importance analysis
-2. Deploy LIME for individual prediction explanations
-3. Apply Grad-CAM for visual attention mapping (if applicable)
-4. Generate anchors for rule-based interpretability
-5. Build explanation dashboard for end-users
-6. Conduct user studies for explanation quality assessment
-
-Tools and Libraries:
-- shap: For SHAP value computation
-- lime: For local explanations
-- tf-explain: For Grad-CAM implementations
-- alibi: For anchors and counterfactuals
-- dash/shiny: For interactive explanation visualization`,
+      implementation: 'Integrate explanation generation into model evaluation and expose outputs through a researcher-facing review workflow.',
       expectedOutputs: [
         'Global feature importance rankings',
-        'Local explanation for each prediction',
-        'Visual attention maps (for vision models)',
-        'Interpretable rule sets',
-        'Interactive explanation dashboard',
-        'User comprehension metrics',
+        'Per-instance explanations for representative predictions',
+        'Researcher-friendly explanation summaries',
       ],
       visualizations: [
         {
           title: 'SHAP Summary Plot',
           type: 'shap_summary',
-          description: 'Beeswarm plot showing feature impact distribution',
-          interpretation: 'Features are ranked by importance, with positive/negative impacts shown',
+          description: 'Overview of feature contribution distributions across predictions.',
+          interpretation: 'Higher spread and magnitude indicate stronger impact on model outputs.',
         },
         {
-          title: 'Feature Importance Bar Chart',
-          type: 'feature_importance',
-          description: 'Mean absolute SHAP values per feature',
-          interpretation: 'Higher bars indicate more important features',
-        },
-        {
-          title: 'SHAP Dependence Plots',
-          type: 'shap_summary',
-          description: 'Interaction effects between features',
-          interpretation: 'Shows how feature values affect predictions',
-        },
-        {
-          title: 'LIME Explanation Visualization',
+          title: 'LIME Explanation View',
           type: 'lime_explanation',
-          description: 'Local explanation for individual predictions',
-          interpretation: 'Highlights which features support/reject prediction',
-        },
-        {
-          title: 'Grad-CAM Attention Map',
-          type: 'attention',
-          description: 'Visual highlighting of important regions',
-          interpretation: 'Warmer colors indicate higher attention',
+          description: 'Local explanation showing which features support or oppose a prediction.',
+          interpretation: 'Positive and negative contributors help explain individual model decisions.',
         },
       ],
     }
