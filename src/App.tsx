@@ -288,8 +288,18 @@ function App() {
         sidebar={
           <div className="space-y-6">
             <nav className="space-y-2">
-              <SidebarLink icon={<Home size={18} />} label="Home" href="#" active />
-              <SidebarLink icon={<FileSearch size={18} />} label="Research" href="#research" />
+              <SidebarLink 
+                icon={<Home size={18} />} 
+                label="Home" 
+                onClick={handleNewSearch}
+                active={!research} 
+              />
+              <SidebarLink 
+                icon={<FileSearch size={18} />} 
+                label="Research" 
+                onClick={handleNewSearch}
+                active={!research}
+              />
               <SidebarLink icon={<Settings size={18} />} label="Settings" href="#settings" />
               <SidebarLink icon={<HelpCircle size={18} />} label="Help" href="#help" />
             </nav>
@@ -406,17 +416,27 @@ function bytesToBase64(bytes: Uint8Array): string {
 function SidebarLink({
   active = false,
   href,
+  onClick,
   icon,
   label,
 }: {
   active?: boolean
-  href: string
+  href?: string
+  onClick?: () => void
   icon: ReactNode
   label: string
 }) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (onClick) {
+      e.preventDefault()
+      onClick()
+    }
+  }
+
   return (
     <a
-      href={href}
+      href={href || '#'}
+      onClick={handleClick}
       className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
         active ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-secondary'
       }`}
