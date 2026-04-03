@@ -222,7 +222,10 @@ export default async function handler(req, res) {
 
     const payload = await response.json()
 
+    console.log('[research] Gemini response status:', response.status)
+
     if (!response.ok) {
+      console.error('[research] Gemini error payload:', JSON.stringify(payload))
       const message = payload?.error?.message || 'Gemini request failed.'
       if (response.status === 429) {
         const snapshot = await exhaustGeminiQuota(userId).catch(() => null)
@@ -259,6 +262,11 @@ export default async function handler(req, res) {
       error: error instanceof Error ? error.message : 'Unexpected server error.',
       quotaResetPolicy: getQuotaResetPolicy(),
       quota: error.snapshot || null,
+      debug: {
+        hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+        model: DEFAULT_MODEL,
+        stack: error instanceof Error ? error.stack : null,
+      },
     })
   }
 }
