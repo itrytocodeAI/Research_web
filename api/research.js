@@ -285,17 +285,28 @@ export default async function handler(req, res) {
       // Debug: show what Gemini actually returned
       const candidate = payload?.candidates?.[0]
       const rawText = candidate?.content?.parts?.[0]?.text || null
+      
+      // Try to manually parse to show the error
+      let parseError = null
+      if (rawText) {
+        try {
+          let cleanText = rawText.trim()
+          cleanText = cleanText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/i, '')
+          JSON.parse(cleanText)
+        } catch (e) {
+          parseError = e.message
+        }
+      }
+      
       return res.status(502).json({
         error: 'Gemini did not return a valid structured research payload.',
         debug: {
           hasCandidate: Boolean(candidate),
-          candidateKeys: candidate ? Object.keys(candidate) : [],
-          contentKeys: candidate?.content ? Object.keys(candidate.content) : [],
           hasParts: Boolean(candidate?.content?.parts),
-          partsCount: candidate?.content?.parts?.length,
+          rawTextLength: rawText?.length,
           rawTextPreview: rawText ? rawText.substring(0, 500) : null,
+          parseError,
           finishReason: candidate?.finishReason,
-          fullCandidate: JSON.stringify(candidate).substring(0, 1000),
         }
       })
     }
