@@ -48,6 +48,7 @@ Create `.env.local` with:
 ```bash
 VITE_API_BASE_URL=
 VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
 CLERK_AUTHORIZED_PARTIES=https://your-app-domain.vercel.app
 SUPABASE_URL=your_supabase_project_url
@@ -66,6 +67,7 @@ You can also copy from [`.env.example`](d:/Projects/Research_web/.env.example).
 3. Add these environment variables in Vercel:
    - `VITE_API_BASE_URL` (optional; leave empty for same-origin API routes)
    - `VITE_CLERK_PUBLISHABLE_KEY`
+   - `CLERK_PUBLISHABLE_KEY`
    - `CLERK_SECRET_KEY`
    - `CLERK_AUTHORIZED_PARTIES`
    - `SUPABASE_URL`
@@ -89,6 +91,8 @@ For production, `VITE_API_BASE_URL` can stay empty when the frontend and Vercel 
 ### Authenticated API Routes
 
 The routes [`api/research.js`](d:/Projects/Research_web/api/research.js), [`api/quota.js`](d:/Projects/Research_web/api/quota.js), and [`api/export.js`](d:/Projects/Research_web/api/export.js) require a valid Clerk session token. The server verifies the token before servicing the request.
+
+The frontend uses only the publishable key. Server routes use `CLERK_SECRET_KEY` plus a server-side publishable key value and never expose the secret key to React.
 
 ### Ownership Enforcement
 

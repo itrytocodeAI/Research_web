@@ -2,6 +2,9 @@ node_modules/
 dist/
 .vite/
 .vercel/
+CLAUDE.md
+CODEX.md
+Research_web_vault/
 
 .env
 .env.local

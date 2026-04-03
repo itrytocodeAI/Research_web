@@ -1,12 +1,15 @@
 import { createClerkClient } from '@clerk/backend'
 
+const publishableKey =
+  process.env.CLERK_PUBLISHABLE_KEY || process.env.VITE_CLERK_PUBLISHABLE_KEY
+
 const clerkClient = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY,
-  publishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY,
+  publishableKey,
 })
 
 export async function requireAuthenticatedUser(req) {
-  if (!process.env.CLERK_SECRET_KEY || !process.env.VITE_CLERK_PUBLISHABLE_KEY) {
+  if (!process.env.CLERK_SECRET_KEY || !publishableKey) {
     const error = new Error('Clerk server authentication is not configured.')
     error.status = 503
     throw error
@@ -18,7 +21,7 @@ export async function requireAuthenticatedUser(req) {
     acceptsToken: 'session_token',
     authorizedParties,
     secretKey: process.env.CLERK_SECRET_KEY,
-    publishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY,
+    publishableKey,
   })
 
   if (!requestState.isAuthenticated) {
