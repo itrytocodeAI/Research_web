@@ -19,6 +19,7 @@ export default async function handler(req, res) {
     return res.status(error.status || 500).json({
       error: error instanceof Error ? error.message : 'Failed to load Gemini quota.',
       quotaResetPolicy: getQuotaResetPolicy(),
+      reason: error.reason,
       debug: {
         hasSecretKey: Boolean(process.env.CLERK_SECRET_KEY),
         hasPublishableKey: Boolean(process.env.CLERK_PUBLISHABLE_KEY || process.env.VITE_CLERK_PUBLISHABLE_KEY),

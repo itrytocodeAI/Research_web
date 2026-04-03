@@ -17,6 +17,13 @@ export async function requireAuthenticatedUser(req) {
 
   const request = toWebRequest(req)
   const authorizedParties = getAuthorizedParties(req)
+  
+  console.log('[auth] Attempting authentication with:', {
+    authorizedParties,
+    hasAuthHeader: Boolean(req.headers.authorization),
+    publishableKeyPrefix: publishableKey?.substring(0, 10),
+  })
+
   const requestState = await clerkClient.authenticateRequest(request, {
     acceptsToken: 'session_token',
     authorizedParties,
@@ -24,9 +31,17 @@ export async function requireAuthenticatedUser(req) {
     publishableKey,
   })
 
+  console.log('[auth] Request state:', {
+    isAuthenticated: requestState.isAuthenticated,
+    reason: requestState.reason,
+    message: requestState.message,
+    status: requestState.status,
+  })
+
   if (!requestState.isAuthenticated) {
-    const error = new Error('Unauthorized')
+    const error = new Error(requestState.message || 'Unauthorized')
     error.status = 401
+    error.reason = requestState.reason
     throw error
   }
 
