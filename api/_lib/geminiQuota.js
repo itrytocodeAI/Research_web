@@ -9,7 +9,6 @@ export function getGeminiQuotaLimit() {
   return GEMINI_FREE_TIER_DAILY_LIMIT
 }
 
-export async function getGeminiQuotaSnapshot() {
 export async function getGeminiQuotaSnapshot(userId) {
   const client = getAdminClient()
   if (!userId) {
