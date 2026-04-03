@@ -194,7 +194,7 @@ function App() {
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
           .replace(/\'/g, '&#039;')
-n      const renderList = (items: string[]) => items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')
+      const renderList = (items: string[]) => items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')
 
       const html = `
         <div style="font-family: Arial, Helvetica, sans-serif; color: #111; padding: 20px; max-width: 800px;">
