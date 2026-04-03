@@ -264,6 +264,12 @@ function App() {
     setViewingDocument(doc)
   }, [])
 
+  const handleNewSearch = useCallback(() => {
+    setResearch(null)
+    setDocuments([])
+    setCurrentStep(0)
+  }, [])
+
   // Show loading state
   if (authLoading) {
     return (
@@ -365,6 +371,7 @@ function App() {
                 onViewDocument={handleViewDocument}
                 onDownloadWord={handleDownloadWord}
                 onUploadToDrive={handleUploadToDrive}
+                onNewSearch={handleNewSearch}
                 isUploading={isUploading}
                 driveUploadAvailable
               />

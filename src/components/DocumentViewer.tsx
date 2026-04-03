@@ -63,15 +63,15 @@ export function DocumentViewer({ researchDocument, onClose }: DocumentViewerProp
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-6 bg-white dark:bg-gray-900">
           {researchDocument.type === 'markdown' ? (
-            <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-code:text-foreground">
+            <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-800 dark:prose-p:text-gray-200 prose-li:text-gray-800 dark:prose-li:text-gray-200 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-code:text-gray-900 dark:prose-code:text-gray-100">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {researchDocument.content}
               </ReactMarkdown>
             </div>
           ) : (
-            <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+            <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-gray-900 dark:text-gray-100">
               {researchDocument.content}
             </pre>
           )}

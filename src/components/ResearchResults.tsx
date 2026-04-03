@@ -22,6 +22,7 @@ interface ResearchResultsProps {
   onViewDocument: (doc: ResearchDocument) => void
   onDownloadWord: () => void
   onUploadToDrive: () => void
+  onNewSearch?: () => void
   isUploading?: boolean
   driveUploadAvailable?: boolean
 }
@@ -32,6 +33,7 @@ export function ResearchResults({
   onViewDocument,
   onDownloadWord,
   onUploadToDrive,
+  onNewSearch,
   isUploading,
   driveUploadAvailable = true,
 }: ResearchResultsProps) {
@@ -40,10 +42,10 @@ export function ResearchResults({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-primary to-accent p-8 rounded-2xl text-white"
+        className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 rounded-2xl text-white shadow-lg"
       >
-        <h2 className="text-3xl font-bold mb-2">Research Complete</h2>
-        <p className="text-white/90">{research.topic}</p>
+        <h2 className="text-3xl font-bold mb-2 text-white">Research Complete</h2>
+        <p className="text-white text-lg font-medium">{research.topic}</p>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -337,6 +339,14 @@ export function ResearchResults({
                 </div>
               ))}
             </div>
+            {onNewSearch && (
+              <button
+                onClick={onNewSearch}
+                className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
+              >
+                <span>← New Search</span>
+              </button>
+            )}
           </div>
 
           {research.sources.length > 0 && (
