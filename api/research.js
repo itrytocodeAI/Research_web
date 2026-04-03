@@ -160,6 +160,9 @@ const researchSchema = {
 }
 
 export default async function handler(req, res) {
+  // Log immediately to verify handler is being called
+  console.log('[research] Handler invoked:', req.method, req.url)
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -170,7 +173,7 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Method not allowed', handlerReached: true })
   }
 
   if (!process.env.GEMINI_API_KEY) {
