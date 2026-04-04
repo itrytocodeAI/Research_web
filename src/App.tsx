@@ -380,10 +380,7 @@ function App() {
                 documents={documents}
                 onViewDocument={handleViewDocument}
                 onDownloadWord={handleDownloadWord}
-                onUploadToDrive={handleUploadToDrive}
                 onNewSearch={handleNewSearch}
-                isUploading={isUploading}
-                driveUploadAvailable
               />
             </Suspense>
           )}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ArrowRight, FileText, Lightbulb, Search, Sparkles, Telescope } from 'lucide-react'
 import { motion } from 'framer-motion'
 
@@ -30,6 +30,10 @@ export function TopicInput({ onSubmit, isLoading, quotaBanner }: TopicInputProps
     'Blockchain for supply chain',
     'Quantum computing applications',
   ]
+
+  const shuffledExamples = useMemo(() => {
+    return [...exampleTopics].sort(() => Math.random() - 0.5)
+  }, [])
 
   return (
     <motion.div
@@ -105,7 +109,7 @@ export function TopicInput({ onSubmit, isLoading, quotaBanner }: TopicInputProps
           Or try one of these example topics:
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          {exampleTopics.map((example, idx) => (
+          {shuffledExamples.map((example, idx) => (
             <motion.button
               key={idx}
               initial={{ opacity: 0, y: 10 }}
