@@ -3,6 +3,7 @@ import type {
   Hypothesis,
   ImplementationPlan,
   Metric,
+  ProposedArchitecture,
   ResearchGap,
   ResearchOutput,
   ResearchProblem,
@@ -87,6 +88,7 @@ export class ResearchService {
       researchGaps: this.parseResearchGaps(parsed.researchGaps, topic),
       researchProblems: this.parseResearchProblems(parsed.researchProblems),
       hypotheses: this.parseHypotheses(parsed.hypotheses),
+      proposedArchitecture: this.parseProposedArchitecture(parsed.proposedArchitecture),
       implementationPlan: this.parseImplementationPlan(parsed.implementationPlan),
       methodology: this.readString(parsed.methodology) || this.generateMethodology(),
       evaluationMetrics: this.parseEvaluationMetrics(parsed.evaluationMetrics),
@@ -238,6 +240,32 @@ export class ResearchService {
     }
   }
 
+  private parseProposedArchitecture(value: unknown): ProposedArchitecture {
+    if (!this.isRecord(value)) {
+      return this.generateProposedArchitecture()
+    }
+
+    const primaryModel = this.readString(value.primaryModel)
+    const rationale = this.readString(value.rationale)
+    const architectureDetails = this.readString(value.architectureDetails)
+    const alternatives = this.readStringArray(value.alternatives)
+    const implementationFramework = this.readString(value.implementationFramework)
+    const expectedPerformance = this.readString(value.expectedPerformance)
+
+    if (!primaryModel || !rationale) {
+      return this.generateProposedArchitecture()
+    }
+
+    return {
+      primaryModel,
+      rationale,
+      architectureDetails: architectureDetails || 'Architecture details to be determined during implementation',
+      alternatives: alternatives.length > 0 ? alternatives : ['Alternative approaches to be explored'],
+      implementationFramework: implementationFramework || 'PyTorch / TensorFlow',
+      expectedPerformance: expectedPerformance || 'Performance benchmarks to be established',
+    }
+  }
+
   private parseEvaluationMetrics(value: unknown): EvaluationMetric[] {
     if (!Array.isArray(value)) {
       return this.generateEvaluationMetrics()
@@ -347,6 +375,7 @@ export class ResearchService {
       researchGaps: this.generateSampleGaps(topic),
       researchProblems: this.generateSampleProblems(),
       hypotheses: this.generateSampleHypotheses(),
+      proposedArchitecture: this.generateProposedArchitecture(),
       implementationPlan: this.generateSampleImplementationPlan(),
       methodology: this.generateMethodology(),
       evaluationMetrics: this.generateEvaluationMetrics(),
@@ -613,6 +642,21 @@ Data collection will combine literature review, public datasets, and controlled 
           interpretation: 'Positive and negative contributors help explain individual model decisions.',
         },
       ],
+    }
+  }
+
+  private generateProposedArchitecture(): ProposedArchitecture {
+    return {
+      primaryModel: 'Transformer-based architecture',
+      rationale: 'Transformer models have demonstrated state-of-the-art performance across multiple domains and provide strong baseline capabilities for further experimentation.',
+      architectureDetails: 'Pre-trained encoder-decoder or encoder-only architecture, fine-tuned on domain-specific data. Layer normalization, multi-head attention, and positional encodings will be preserved from the base model.',
+      alternatives: [
+        'CNN-based architecture for structured data tasks',
+        'Hybrid CNN-Transformer for multi-modal inputs',
+        'LSTM or GRU for sequential processing with limited computational resources',
+      ],
+      implementationFramework: 'PyTorch with HuggingFace Transformers library',
+      expectedPerformance: 'Baseline performance expected to exceed 85% accuracy on validation set, with potential for improvement through hyperparameter tuning and architecture refinement.',
     }
   }
 }

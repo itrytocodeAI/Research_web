@@ -38,12 +38,22 @@ export interface ImplementationPlan {
   milestones: string[]
 }
 
+export interface ProposedArchitecture {
+  primaryModel: string
+  rationale: string
+  architectureDetails: string
+  alternatives: string[]
+  implementationFramework: string
+  expectedPerformance: string
+}
+
 export interface ResearchOutput {
   topic: string
   executiveSummary: string
   researchGaps: ResearchGap[]
   researchProblems: ResearchProblem[]
   hypotheses: Hypothesis[]
+  proposedArchitecture: ProposedArchitecture
   implementationPlan: ImplementationPlan
   methodology: string
   evaluationMetrics: EvaluationMetric[]

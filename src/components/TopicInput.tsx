@@ -25,14 +25,95 @@ export function TopicInput({ onSubmit, isLoading, quotaBanner }: TopicInputProps
   }
 
   const exampleTopics = [
+    // AI & Machine Learning
     'AI in healthcare diagnosis',
+    'Deep learning for medical image analysis',
+    'NLP for clinical documentation',
+    'Predictive analytics in patient care',
+    'Computer vision for autonomous vehicles',
+    'Object detection in surveillance systems',
+    'Face recognition privacy concerns',
+    'Emotion recognition from facial expressions',
+    'Sentiment analysis on social media',
+    'Machine translation quality improvement',
+    'Question answering systems',
+    'Text summarization for news articles',
+    'Chatbot development for customer service',
+    'Speech recognition in noisy environments',
+    'Reinforcement learning for game AI',
+    'Transfer learning in small datasets',
+    'Explainable AI in critical systems',
+    'Federated learning for privacy',
+    'AutoML for model optimization',
+    'Neural architecture search',
+    
+    // Climate & Environment
     'Climate change impact on agriculture',
+    'Weather prediction using deep learning',
+    'Carbon footprint tracking systems',
+    'Renewable energy optimization',
+    'Ocean temperature monitoring',
+    'Wildfire prediction models',
+    'Air quality forecasting',
+    'Deforestation detection from satellite imagery',
+    'Water resource management with IoT',
+    'Sustainable urban planning',
+    
+    // Blockchain & Web3
     'Blockchain for supply chain',
+    'Smart contracts for real estate',
+    'DeFi protocol security',
+    'NFT authentication systems',
+    'Cryptocurrency price prediction',
+    'Blockchain in healthcare records',
+    'Voting systems using blockchain',
+    'Cross-chain interoperability',
+    
+    // Robotics & Automation
+    'Autonomous drone navigation',
+    'Robot manipulation in warehouses',
+    'Collaborative robots in manufacturing',
+    'Swarm robotics coordination',
+    'Humanoid robot interaction',
+    'Agricultural automation systems',
+    
+    // Cybersecurity
+    'Intrusion detection using ML',
+    'Malware classification with deep learning',
+    'Phishing email detection',
+    'Network anomaly detection',
+    'Biometric authentication systems',
+    'Zero-day exploit prediction',
+    
+    // IoT & Smart Systems
+    'Smart home energy optimization',
+    'Industrial IoT predictive maintenance',
+    'Smart city traffic management',
+    'Precision agriculture with sensors',
+    'Wearable health monitoring devices',
+    
+    // Education & Research
+    'Personalized learning platforms',
+    'Automated essay grading',
+    'Virtual reality in education',
+    'MOOC completion prediction',
+    
+    // Finance & Economics
+    'Stock market prediction with LSTM',
+    'Credit risk assessment models',
+    'Fraud detection in banking',
+    'Algorithmic trading strategies',
+    
+    // Quantum & Emerging Tech
     'Quantum computing applications',
+    'Quantum machine learning',
+    'Edge computing optimization',
+    'Neuromorphic computing research',
   ]
 
   const shuffledExamples = useMemo(() => {
-    return [...exampleTopics].sort(() => Math.random() - 0.5)
+    const shuffled = [...exampleTopics].sort(() => Math.random() - 0.5)
+    return shuffled.slice(0, 4) // Show only 4 random suggestions
   }, [])
 
   return (

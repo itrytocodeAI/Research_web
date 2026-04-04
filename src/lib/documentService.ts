@@ -1,41 +1,60 @@
-import type { ResearchOutput, Document as ResearchDocument } from '../types'
+import type { ResearchOutput, Document as ResearchDocument, ProposedArchitecture } from '../types'
 
 export class DocumentService {
   async generateWordDocument(research: ResearchOutput): Promise<Blob> {
-    const { Document, HeadingLevel, Packer, Paragraph, TextRun } = await import('docx')
+    const { Document, HeadingLevel, Packer, Paragraph, TextRun, AlignmentType, UnderlineType } = await import('docx')
+
+    const arch: ProposedArchitecture = research.proposedArchitecture
 
     const doc = new Document({
       sections: [
         {
           properties: {},
           children: [
+            // Title Page
             new Paragraph({
               text: 'Deep Research Report',
               heading: HeadingLevel.TITLE,
+              alignment: AlignmentType.CENTER,
             }),
             new Paragraph({
               children: [
                 new TextRun({
-                  text: `Topic: ${research.topic}`,
+                  text: research.topic,
                   bold: true,
-                  size: 28,
+                  size: 32,
+                  underline: {
+                    type: UnderlineType.SINGLE,
+                  },
                 }),
               ],
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 200, after: 200 },
             }),
             new Paragraph({
               text: `Generated: ${new Date().toLocaleDateString()}`,
-              spacing: { after: 400 },
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 600 },
             }),
+            
+            // Executive Summary
             new Paragraph({
               text: 'Executive Summary',
               heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400 },
             }),
-            new Paragraph({
-              text: research.executiveSummary,
-            }),
+            ...research.executiveSummary.split('\n\n').map(para => new Paragraph({
+              text: para,
+              spacing: { after: 200 },
+            })),
+            
+
+            
+            // Research Gaps
             new Paragraph({
               text: 'Research Gaps',
               heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400 },
             }),
             ...research.researchGaps.flatMap((gap, index) => [
               new Paragraph({
@@ -43,38 +62,266 @@ export class DocumentService {
                   new TextRun({
                     text: `${index + 1}. ${gap.title}`,
                     bold: true,
+                    size: 24,
                   }),
                   new TextRun({
-                    text: ` (Severity: ${gap.severity.toUpperCase()})`,
-                    color: gap.severity === 'high' ? 'FF0000' : '000000',
+                    text: ` [Severity: ${gap.severity.toUpperCase()}]`,
+                    color: gap.severity === 'high' ? 'FF0000' : gap.severity === 'medium' ? 'FF8800' : '00AA00',
+                    bold: true,
                   }),
                 ],
-                spacing: { before: 200 },
+                spacing: { before: 300 },
               }),
               new Paragraph({
                 text: gap.description,
                 indent: { left: 720 },
+                spacing: { after: 100 },
+              }),
+              ...(gap.references && gap.references.length > 0 ? [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'References: ',
+                      bold: true,
+                      italics: true,
+                    }),
+                    new TextRun({
+                      text: gap.references.join('; '),
+                      italics: true,
+                    }),
+                  ],
+                  indent: { left: 720 },
+                  spacing: { after: 200 },
+                }),
+              ] : []),
+            ]),
+            
+            // Research Problems
+            new Paragraph({
+              text: 'Research Problems',
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400 },
+            }),
+            ...research.researchProblems.flatMap((problem) => [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Problem ${problem.id}: `,
+                    bold: true,
+                    size: 24,
+                  }),
+                  new TextRun({
+                    text: problem.statement,
+                  }),
+                ],
+                spacing: { before: 300 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'Significance: ',
+                    bold: true,
+                  }),
+                  new TextRun({
+                    text: problem.significance,
+                  }),
+                ],
+                indent: { left: 720 },
+                spacing: { after: 100 },
+              }),
+              ...(problem.relatedGaps.length > 0 ? [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Related Gaps: ',
+                      bold: true,
+                      italics: true,
+                    }),
+                    new TextRun({
+                      text: problem.relatedGaps.join(', '),
+                      italics: true,
+                    }),
+                  ],
+                  indent: { left: 720 },
+                  spacing: { after: 200 },
+                }),
+              ] : []),
+            ]),
+            
+            // Hypotheses
+            new Paragraph({
+              text: 'Proposed Hypotheses',
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400 },
+            }),
+            ...research.hypotheses.flatMap((hypothesis) => [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Hypothesis ${hypothesis.id}: `,
+                    bold: true,
+                    size: 24,
+                  }),
+                  new TextRun({
+                    text: hypothesis.hypothesis,
+                  }),
+                ],
+                spacing: { before: 300 },
+              }),
+              new Paragraph({
+                text: 'Variables',
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 100 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'Independent: ',
+                    bold: true,
+                  }),
+                  new TextRun({
+                    text: hypothesis.variables.independent.join(', ') || 'Not specified',
+                  }),
+                ],
+                indent: { left: 720 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'Dependent: ',
+                    bold: true,
+                  }),
+                  new TextRun({
+                    text: hypothesis.variables.dependent.join(', ') || 'Not specified',
+                  }),
+                ],
+                indent: { left: 720 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'Controlled: ',
+                    bold: true,
+                  }),
+                  new TextRun({
+                    text: hypothesis.variables.controlled.join(', ') || 'Not specified',
+                  }),
+                ],
+                indent: { left: 720 },
+                spacing: { after: 100 },
+              }),
+              new Paragraph({
+                text: 'Methodology',
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 100 },
+              }),
+              new Paragraph({
+                text: hypothesis.methodology,
+                indent: { left: 720 },
+                spacing: { after: 200 },
               }),
             ]),
+            
+            // Methodology (merged with Proposed Architecture)
             new Paragraph({
-              text: 'Hypotheses',
+              text: 'Research Methodology',
               heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400 },
             }),
-            ...research.hypotheses.map((hypothesis) => new Paragraph({
+            
+            new Paragraph({
+              text: 'Proposed Model Architecture',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 200 },
+            }),
+            new Paragraph({
               children: [
                 new TextRun({
-                  text: `Hypothesis ${hypothesis.id}: `,
+                  text: 'Primary Model: ',
                   bold: true,
                 }),
                 new TextRun({
-                  text: hypothesis.hypothesis,
+                  text: arch.primaryModel,
                 }),
               ],
-              spacing: { before: 200 },
+              indent: { left: 720 },
+              spacing: { after: 100 },
+            }),
+            new Paragraph({
+              text: arch.rationale,
+              indent: { left: 720 },
+              spacing: { after: 200 },
+            }),
+            
+            new Paragraph({
+              text: 'Architecture Details',
+              heading: HeadingLevel.HEADING_2,
+            }),
+            new Paragraph({
+              text: arch.architectureDetails,
+              indent: { left: 720 },
+              spacing: { after: 200 },
+            }),
+            
+            new Paragraph({
+              text: 'Implementation Framework',
+              heading: HeadingLevel.HEADING_2,
+            }),
+            new Paragraph({
+              text: arch.implementationFramework,
+              indent: { left: 720 },
+              spacing: { after: 200 },
+            }),
+            
+            new Paragraph({
+              text: 'Alternative Approaches',
+              heading: HeadingLevel.HEADING_2,
+            }),
+            ...arch.alternatives.map((alt: string) => new Paragraph({
+              text: alt,
+              bullet: { level: 0 },
+              indent: { left: 720 },
             })),
+            
+            new Paragraph({
+              text: 'Expected Performance',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 200 },
+            }),
+            new Paragraph({
+              text: arch.expectedPerformance,
+              indent: { left: 720 },
+              spacing: { after: 300 },
+            }),
+            
+            new Paragraph({
+              text: 'Research Approach',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 200 },
+            }),
+            ...research.methodology.split('\n\n').map(para => new Paragraph({
+              text: para,
+              indent: { left: 720 },
+              spacing: { after: 200 },
+            })),
+            
+            // Implementation Plan
             new Paragraph({
               text: 'Implementation Plan',
               heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400 },
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: 'Phase: ',
+                  bold: true,
+                }),
+                new TextRun({
+                  text: research.implementationPlan.phase,
+                }),
+              ],
+              spacing: { after: 200 },
             }),
             new Paragraph({
               children: [
@@ -86,27 +333,183 @@ export class DocumentService {
                   text: research.implementationPlan.timeline,
                 }),
               ],
+              spacing: { after: 200 },
+            }),
+            
+            new Paragraph({
+              text: 'Tasks',
+              heading: HeadingLevel.HEADING_2,
             }),
             ...research.implementationPlan.tasks.map((task) => new Paragraph({
               text: task,
               bullet: { level: 0 },
+              indent: { left: 720 },
             })),
+            
             new Paragraph({
-              text: 'XAI Implementation Plan',
+              text: 'Resources Required',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 200 },
+            }),
+            ...research.implementationPlan.resources.map((resource) => new Paragraph({
+              text: resource,
+              bullet: { level: 0 },
+              indent: { left: 720 },
+            })),
+            
+            new Paragraph({
+              text: 'Milestones',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 200 },
+            }),
+            ...research.implementationPlan.milestones.map((milestone) => new Paragraph({
+              text: milestone,
+              bullet: { level: 0 },
+              indent: { left: 720 },
+            })),
+            
+            // Evaluation Metrics
+            new Paragraph({
+              text: 'Evaluation Metrics',
               heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400 },
+            }),
+            ...research.evaluationMetrics.flatMap((category) => [
+              new Paragraph({
+                text: category.category,
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 200 },
+              }),
+              new Paragraph({
+                text: category.description,
+                indent: { left: 720 },
+                spacing: { after: 100 },
+              }),
+              ...category.metrics.map((metric) => new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `${metric.name}: `,
+                    bold: true,
+                  }),
+                  new TextRun({
+                    text: `${metric.description} `,
+                  }),
+                  new TextRun({
+                    text: `(Target: ${metric.target}, Visualization: ${metric.visualization})`,
+                    italics: true,
+                  }),
+                ],
+                bullet: { level: 0 },
+                indent: { left: 1440 },
+              })),
+            ]),
+            
+            // XAI Plan
+            new Paragraph({
+              text: 'Explainability (XAI) Plan',
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400 },
+            }),
+            new Paragraph({
+              text: 'XAI Techniques',
+              heading: HeadingLevel.HEADING_2,
             }),
             ...research.xaiPlan.techniques.map((technique) => new Paragraph({
               children: [
                 new TextRun({
-                  text: technique.name,
+                  text: `${technique.name}: `,
                   bold: true,
                 }),
                 new TextRun({
-                  text: ` - ${technique.description}`,
+                  text: `${technique.description} `,
+                }),
+                new TextRun({
+                  text: `(Library: ${technique.library}, Use Case: ${technique.useCase})`,
+                  italics: true,
                 }),
               ],
               bullet: { level: 0 },
+              indent: { left: 720 },
+              spacing: { after: 100 },
             })),
+            
+            new Paragraph({
+              text: 'Implementation Strategy',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 200 },
+            }),
+            new Paragraph({
+              text: research.xaiPlan.implementation,
+              indent: { left: 720 },
+              spacing: { after: 200 },
+            }),
+            
+            ...(research.xaiPlan.expectedOutputs.length > 0 ? [
+              new Paragraph({
+                text: 'Expected Outputs',
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 200 },
+              }),
+              ...research.xaiPlan.expectedOutputs.map((output) => new Paragraph({
+                text: output,
+                bullet: { level: 0 },
+                indent: { left: 720 },
+              })),
+            ] : []),
+            
+            ...(research.xaiPlan.visualizations.length > 0 ? [
+              new Paragraph({
+                text: 'Planned Visualizations',
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 200 },
+              }),
+              ...research.xaiPlan.visualizations.flatMap((viz) => [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `${viz.title} `,
+                      bold: true,
+                    }),
+                    new TextRun({
+                      text: `(Type: ${viz.type})`,
+                      italics: true,
+                    }),
+                  ],
+                  bullet: { level: 0 },
+                  indent: { left: 720 },
+                }),
+                new Paragraph({
+                  text: viz.description,
+                  indent: { left: 1440 },
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Interpretation: ',
+                      bold: true,
+                      italics: true,
+                    }),
+                    new TextRun({
+                      text: viz.interpretation,
+                      italics: true,
+                    }),
+                  ],
+                  indent: { left: 1440 },
+                  spacing: { after: 100 },
+                }),
+              ]),
+            ] : []),
+            
+            // Footer
+            new Paragraph({
+              text: '',
+              spacing: { before: 400 },
+            }),
+            new Paragraph({
+              text: '--- End of Report ---',
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 200 },
+            }),
           ],
         },
       ],

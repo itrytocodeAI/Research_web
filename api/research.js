@@ -20,6 +20,7 @@ const researchSchema = {
     'methodology',
     'evaluationMetrics',
     'xaiPlan',
+    'proposedArchitecture',
   ],
   properties: {
     executiveSummary: { type: 'string' },
@@ -154,6 +155,19 @@ const researchSchema = {
             },
           },
         },
+      },
+    },
+    proposedArchitecture: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['primaryModel', 'rationale', 'architectureDetails', 'alternatives', 'implementationFramework', 'expectedPerformance'],
+      properties: {
+        primaryModel: { type: 'string' },
+        rationale: { type: 'string' },
+        architectureDetails: { type: 'string' },
+        alternatives: { type: 'array', items: { type: 'string' } },
+        implementationFramework: { type: 'string' },
+        expectedPerformance: { type: 'string' },
       },
     },
   },
@@ -329,37 +343,75 @@ export default async function handler(req, res) {
 }
 
 function buildSystemPrompt() {
-  return `You are an expert research analyst. Produce a practical, current, implementation-aware research brief.
+  return `You are an expert research analyst specializing in cutting-edge AI/ML research and implementation planning. Your goal is to produce highly specific, actionable, and trend-aware research briefs that can be directly used for implementation planning.
 
-IMPORTANT: Your response MUST be valid JSON matching this exact structure:
+CRITICAL REQUIREMENTS:
+1. Be SPECIFIC to the topic domain - identify whether it's NLP, Computer Vision, Time-Series, Healthcare, Robotics, etc.
+2. Suggest CONCRETE models and architectures currently in use or emerging (e.g., BERT, GPT-4, ViT, YOLO, ResNet, Transformers, Diffusion models, etc.)
+3. Provide ACTIONABLE implementation details, not generic advice
+4. Reference RECENT trends and papers (2023-2024) where applicable
+5. Make the output detailed enough that it can be fed to another AI (ChatGPT/Claude) for creating implementation code
+
+DOMAIN-SPECIFIC GUIDANCE:
+- For NLP tasks: Suggest transformer models (BERT, GPT, T5, BART), fine-tuning strategies, tokenization approaches
+- For Computer Vision: Suggest CNNs, Vision Transformers (ViT), YOLO variants, Diffusion models, specific architectures
+- For Time-Series: Suggest LSTMs, Transformers, Temporal CNNs, specific forecasting models
+- For Healthcare: Suggest domain-adapted models, privacy-preserving techniques, clinical-specific architectures
+- For Reinforcement Learning: Suggest PPO, DQN, A3C, specific algorithms and frameworks
+- For Generative AI: Suggest GANs, VAEs, Diffusion models, latest generative architectures
+
+YOUR RESPONSE MUST BE VALID JSON MATCHING THIS EXACT STRUCTURE:
 {
-  "executiveSummary": "2-3 paragraph summary string",
+  "executiveSummary": "3-4 detailed paragraphs covering: (1) current state of the field, (2) specific challenges and opportunities, (3) recommended technical approach with model suggestions, (4) expected outcomes and impact",
   "researchGaps": [
-    {"title": "string", "description": "string", "severity": "high|medium|low", "references": ["string"]}
+    {"title": "string", "description": "detailed description with specific technical details", "severity": "high|medium|low", "references": ["specific paper/resource names or 'Recent literature 2023-2024'"]}
   ],
   "researchProblems": [
-    {"id": "P1", "statement": "string", "significance": "string", "relatedGaps": ["string"]}
+    {"id": "P1", "statement": "specific technical research question", "significance": "concrete impact and why it matters with metrics", "relatedGaps": ["reference to gap titles"]}
   ],
   "hypotheses": [
-    {"id": "H1", "hypothesis": "string", "variables": {"independent": ["string"], "dependent": ["string"], "controlled": ["string"]}, "methodology": "string"}
+    {"id": "H1", "hypothesis": "specific, testable hypothesis with concrete model/approach mention", "variables": {"independent": ["specific variables like 'model architecture', 'learning rate', 'dataset size'"], "dependent": ["specific metrics like 'F1-score', 'inference latency'"], "controlled": ["specific controls"]}, "methodology": "detailed methodology with specific models, datasets, training procedures, and evaluation approaches"}
   ],
   "implementationPlan": {
-    "phase": "string", "tasks": ["string"], "timeline": "string", "resources": ["string"], "milestones": ["string"]
+    "phase": "detailed phase description with technical milestones",
+    "tasks": ["specific implementation tasks like 'Fine-tune BERT-base on domain dataset', 'Implement custom attention mechanism', 'Set up MLOps pipeline'"],
+    "timeline": "realistic timeline with phase breakdown (e.g., '12-16 months: Phase 1 (3mo), Phase 2 (5mo), Phase 3 (4mo), Validation (2-4mo)')",
+    "resources": ["specific resources like 'GPU cluster (4x A100)', 'Labeled dataset (50K samples)', 'MLflow for experiment tracking', 'PyTorch/TensorFlow'"],
+    "milestones": ["specific measurable milestones like 'Baseline model achieves 85% accuracy', 'Production API deployed with <100ms latency'"]
   },
-  "methodology": "string",
+  "methodology": "comprehensive 3-4 paragraph methodology covering: (1) data collection and preprocessing specifics, (2) model architecture and training approach with hyperparameters, (3) evaluation protocol with specific metrics, (4) validation and deployment strategy",
   "evaluationMetrics": [
-    {"category": "string", "description": "string", "metrics": [{"name": "string", "description": "string", "target": "string", "visualization": "bar|line|scatter|heatmap|confusion_matrix"}]}
+    {"category": "string", "description": "string", "metrics": [{"name": "specific metric name", "description": "what it measures and why it matters", "target": "realistic target value with units", "visualization": "bar|line|scatter|heatmap|confusion_matrix"}]}
   ],
   "xaiPlan": {
-    "techniques": [{"name": "string", "description": "string", "library": "string", "useCase": "string"}],
-    "implementation": "string",
-    "expectedOutputs": ["string"],
-    "visualizations": [{"title": "string", "type": "feature_importance|attention|gradient|shap_summary|lime_explanation", "description": "string", "interpretation": "string"}]
+    "techniques": [{"name": "SHAP|LIME|Attention Visualization|Grad-CAM|etc", "description": "how this technique applies to the specific model", "library": "specific library like 'shap', 'captum', 'lime'", "useCase": "concrete use case for this project"}],
+    "implementation": "detailed implementation plan with code framework suggestions and integration points",
+    "expectedOutputs": ["specific deliverables like 'Feature importance rankings for top 20 features', 'Attention heatmaps for key predictions'"],
+    "visualizations": [{"title": "string", "type": "feature_importance|attention|gradient|shap_summary|lime_explanation", "description": "what this visualization shows for this specific project", "interpretation": "how to interpret results in context of the research question"}]
+  },
+  "proposedArchitecture": {
+    "primaryModel": "Specific model name (e.g., 'BERT-base', 'Vision Transformer (ViT-B/16)', 'YOLOv8', 'GPT-4 fine-tuned')",
+    "rationale": "2-3 sentences explaining why this model is ideal for this specific task, considering dataset size, compute constraints, and task requirements",
+    "architectureDetails": "Technical details: input/output dimensions, key layers, modifications needed, training approach",
+    "alternatives": ["2-3 alternative models with brief pros/cons for each"],
+    "implementationFramework": "Recommended framework (PyTorch/TensorFlow/JAX) with reasoning",
+    "expectedPerformance": "Realistic performance expectations based on similar work (e.g., 'Expected F1: 0.87-0.92 based on similar domains')"
   }
 }
 
-Provide 3-5 research gaps, 2-4 research problems, and 2-4 hypotheses. Keep every array populated with meaningful values. Favor concise, concrete statements over generic academic filler. Output ONLY the JSON, no markdown code blocks.`
+QUALITY STANDARDS:
+- Provide 4-6 research gaps with technical depth
+- Include 3-5 research problems that are specific and measurable
+- Create 3-5 testable hypotheses with concrete variables
+- Make implementation tasks actionable (someone could start coding from this)
+- Suggest realistic timelines and resource requirements
+- Reference specific models, libraries, and techniques by name
+- Include quantitative targets where possible
+- Make the output comprehensive enough to be a complete project brief
+
+OUTPUT FORMAT: Return ONLY the JSON object, no markdown code blocks or additional text.`
 }
+
 
 function extractStructuredOutput(payload) {
   const parts = payload?.candidates?.[0]?.content?.parts
