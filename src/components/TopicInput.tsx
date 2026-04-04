@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { ArrowRight, FileText, Lightbulb, Search, Sparkles, Telescope } from 'lucide-react'
 import { motion } from 'framer-motion'
 
@@ -30,10 +30,6 @@ export function TopicInput({ onSubmit, isLoading, quotaBanner }: TopicInputProps
     'Blockchain for supply chain',
     'Quantum computing applications',
   ]
-
-  const shuffledExamples = useMemo(() => {
-    return [...exampleTopics].sort(() => Math.random() - 0.5)
-  }, [])
 
   return (
     <motion.div
@@ -109,18 +105,13 @@ export function TopicInput({ onSubmit, isLoading, quotaBanner }: TopicInputProps
           Or try one of these example topics:
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          {shuffledExamples.map((example, idx) => (
+          {exampleTopics.map((example, idx) => (
             <motion.button
               key={idx}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + idx * 0.1 }}
-              onClick={() => {
-                if (!isDisabled) {
-                  setTopic(example)
-                  onSubmit(example)
-                }
-              }}
+              onClick={() => !isDisabled && onSubmit(example)}
               className="px-4 py-2 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-sm"
               disabled={isDisabled}
             >

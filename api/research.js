@@ -175,11 +175,8 @@ export default async function handler(req, res) {
     bodyTopic: req.body?.topic,
     contentType: req.headers['content-type'],
     hasAuth: Boolean(req.headers.authorization),
-    authHeader: req.headers.authorization ? req.headers.authorization.substring(0, 20) + '...' : null,
     host: req.headers.host,
     origin: req.headers.origin,
-    userAgent: req.headers['user-agent']?.substring(0, 50),
-    allHeaders: Object.keys(req.headers),
     envCheck: {
       hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
       hasClerkSecret: Boolean(process.env.CLERK_SECRET_KEY),

@@ -33,10 +33,10 @@ export function DocumentViewer({ researchDocument, onClose }: DocumentViewerProp
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-background rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-border bg-card">
+        <div className="flex items-center justify-between p-6 border-b">
           <div>
-            <h2 className="text-2xl font-bold text-foreground">{researchDocument.name}</h2>
-            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+            <h2 className="text-2xl font-bold">{researchDocument.name}</h2>
+            <p className="text-sm text-muted-foreground">
               {researchDocument.type === 'markdown' ? 'Markdown Document' : 'Word Document'}
             </p>
           </div>
@@ -65,7 +65,7 @@ export function DocumentViewer({ researchDocument, onClose }: DocumentViewerProp
         </div>
         <div className="flex-1 overflow-auto p-6 bg-white dark:bg-gray-900">
           {researchDocument.type === 'markdown' ? (
-            <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground dark:prose-headings:text-foreground prose-p:text-foreground dark:prose-p:text-foreground prose-li:text-foreground dark:prose-li:text-foreground prose-strong:text-foreground dark:prose-strong:text-foreground prose-code:text-foreground dark:prose-code:text-foreground">
+            <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-800 dark:prose-p:text-gray-200 prose-li:text-gray-800 dark:prose-li:text-gray-200 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-code:text-gray-900 dark:prose-code:text-gray-100">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {researchDocument.content}
               </ReactMarkdown>
