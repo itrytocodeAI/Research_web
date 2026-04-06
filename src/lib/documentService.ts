@@ -523,6 +523,14 @@ export class DocumentService {
 
     return [
       {
+        id: 'citations',
+        type: 'markdown',
+        name: 'citations.md',
+        content: this.generateCitationsDocument(research),
+        createdAt,
+        uploadedToDrive: false,
+      },
+      {
         id: 'dataset-methodology',
         type: 'markdown',
         name: 'dataset-search-methodology.md',
@@ -555,6 +563,126 @@ export class DocumentService {
         uploadedToDrive: false,
       },
     ]
+  }
+
+  private generateCitationsDocument(research: ResearchOutput): string {
+    const sources = research.sources || []
+    
+    // IEEE Citation Style format
+    const ieeeStyle = sources.map((source, index) => {
+      const num = index + 1
+      let citation = `[${num}] `
+      
+      // Authors (if available)
+      if (source.authors) {
+        citation += `${source.authors}, `
+      }
+      
+      // Title
+      citation += `"${source.title}"`
+      
+      // Publication type and details
+      if (source.publicationType === 'conference') {
+        citation += `, in Proc.`
+        if (source.year) {
+          citation += `, ${source.year}`
+        }
+      } else if (source.publicationType === 'journal') {
+        citation += `, Journal`
+        if (source.year) {
+          citation += `, vol. ${source.year}`
+        }
+      } else if (source.publicationType === 'preprint') {
+        citation += `, arXiv preprint`
+        if (source.year) {
+          citation += `, ${source.year}`
+        }
+      } else if (source.publicationType === 'repository') {
+        citation += `, GitHub Repository`
+        if (source.year) {
+          citation += `, ${source.year}`
+        }
+      } else {
+        // Web or other
+        if (source.year) {
+          citation += `, ${source.year}`
+        }
+      }
+      
+      // URL
+      citation += `. [Online]. Available: ${source.url}`
+      
+      return citation
+    })
+    
+    // Bibtex style format
+    const bibtexStyle = sources.map((source, index) => {
+      const key = `ref${index + 1}`
+      const type = source.publicationType === 'journal' ? 'article' : 
+                   source.publicationType === 'conference' ? 'inproceedings' :
+                   source.publicationType === 'preprint' ? 'misc' :
+                   'misc'
+      
+      let bibtex = `@${type}{${key},\n`
+      if (source.authors) {
+        bibtex += `  author = {${source.authors}},\n`
+      }
+      bibtex += `  title = {${source.title}},\n`
+      if (source.year) {
+        bibtex += `  year = {${source.year}},\n`
+      }
+      bibtex += `  url = {${source.url}}\n`
+      bibtex += `}`
+      
+      return bibtex
+    })
+    
+    return `# References and Citations
+
+## Research Topic
+${research.topic}
+
+---
+
+## IEEE Citation Style
+
+The following ${sources.length} sources were used in this research analysis. Citations follow the IEEE reference format.
+
+${ieeeStyle.length > 0 ? ieeeStyle.join('\n\n') : 'No sources available.'}
+
+---
+
+## BibTeX Format
+
+For use with LaTeX and reference management software:
+
+\`\`\`bibtex
+${bibtexStyle.join('\n\n')}
+\`\`\`
+
+---
+
+## Source Summary
+
+- **Total Sources**: ${sources.length}
+- **Conference Papers**: ${sources.filter(s => s.publicationType === 'conference').length}
+- **Journal Articles**: ${sources.filter(s => s.publicationType === 'journal').length}
+- **Preprints (arXiv)**: ${sources.filter(s => s.publicationType === 'preprint').length}
+- **Repositories**: ${sources.filter(s => s.publicationType === 'repository').length}
+- **Web Resources**: ${sources.filter(s => s.publicationType === 'web').length}
+
+---
+
+## Quick Links
+
+${sources.map((s, i) => `${i + 1}. [${s.title}](${s.url})`).join('\n')}
+
+---
+
+Generated: ${new Date().toLocaleDateString()}
+
+**Note**: Citations are automatically formatted based on available metadata. Some fields may be inferred from URL patterns and titles. For academic publication, please verify and complete citation details manually.
+`
   }
 
   private generateDatasetMethodology(research: ResearchOutput): string {

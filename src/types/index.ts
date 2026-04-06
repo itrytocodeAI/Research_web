@@ -64,7 +64,11 @@ export interface ResearchOutput {
 export interface ResearchSource {
   title: string
   url: string
+  authors?: string | null
+  year?: number
+  publicationType?: 'conference' | 'journal' | 'preprint' | 'repository' | 'web'
 }
+
 
 export interface EvaluationMetric {
   category: string

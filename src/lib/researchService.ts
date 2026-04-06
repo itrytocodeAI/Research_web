@@ -403,9 +403,25 @@ export class ResearchService {
 
         if (!url) return null
 
-        return { title, url } satisfies ResearchSource
+        return {
+          title,
+          url,
+          authors: this.readString(item.authors) || undefined,
+          year: typeof item.year === 'number' ? item.year : undefined,
+          publicationType: this.normalizePublicationType(item.publicationType),
+        } satisfies ResearchSource
       })
       .filter((item): item is ResearchSource => Boolean(item))
+  }
+
+  private normalizePublicationType(value: unknown): ResearchSource['publicationType'] {
+    const type = this.readString(value).toLowerCase()
+    
+    if (type === 'conference' || type === 'journal' || type === 'preprint' || type === 'repository' || type === 'web') {
+      return type
+    }
+    
+    return undefined
   }
 
   private isRecord(value: unknown): value is JsonRecord {

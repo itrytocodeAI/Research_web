@@ -351,6 +351,7 @@ CRITICAL REQUIREMENTS:
 3. Provide ACTIONABLE implementation details, not generic advice
 4. Reference RECENT trends and papers (2023-2024) where applicable
 5. Make the output detailed enough that it can be fed to another AI (ChatGPT/Claude) for creating implementation code
+6. **CITE AT LEAST 20-30 RELEVANT SOURCES** - Use Google Search to find recent papers, articles, and resources related to the topic. Include author names, publication years, and venues where available in the 'references' arrays
 
 DOMAIN-SPECIFIC GUIDANCE:
 - For NLP tasks: Suggest transformer models (BERT, GPT, T5, BART), fine-tuning strategies, tokenization approaches
@@ -364,7 +365,7 @@ YOUR RESPONSE MUST BE VALID JSON MATCHING THIS EXACT STRUCTURE:
 {
   "executiveSummary": "3-4 detailed paragraphs covering: (1) current state of the field, (2) specific challenges and opportunities, (3) recommended technical approach with model suggestions, (4) expected outcomes and impact",
   "researchGaps": [
-    {"title": "string", "description": "detailed description with specific technical details", "severity": "high|medium|low", "references": ["specific paper/resource names or 'Recent literature 2023-2024'"]}
+    {"title": "string", "description": "detailed description with specific technical details", "severity": "high|medium|low", "references": ["Specific citations like 'Author et al., 2024' or 'Paper Title, Conference/Journal 2023'"]}
   ],
   "researchProblems": [
     {"id": "P1", "statement": "specific technical research question", "significance": "concrete impact and why it matters with metrics", "relatedGaps": ["reference to gap titles"]}
@@ -408,6 +409,7 @@ QUALITY STANDARDS:
 - Reference specific models, libraries, and techniques by name
 - Include quantitative targets where possible
 - Make the output comprehensive enough to be a complete project brief
+- **IMPORTANT: Cite 20-30 relevant academic sources throughout the document** - These should appear in the 'references' arrays of research gaps and be drawn from actual search results
 
 OUTPUT FORMAT: Return ONLY the JSON object, no markdown code blocks or additional text.`
 }
@@ -460,7 +462,40 @@ function extractSources(payload) {
       }
 
       seen.add(url)
-      return { title, url }
+      
+      // Try to extract additional metadata for IEEE-style citations
+      return { 
+        title, 
+        url,
+        authors: extractAuthorsFromTitle(title),
+        year: extractYearFromUrl(url) || new Date().getFullYear(),
+        publicationType: inferPublicationType(url, title),
+      }
     })
     .filter(Boolean)
 }
+
+// Helper to extract authors from title if present (e.g., "Author et al. - Title")
+function extractAuthorsFromTitle(title) {
+  const match = title.match(/^([^-–]+(?:et al\.)?)\s*[-–]\s*/)
+  return match ? match[1].trim() : null
+}
+
+// Helper to extract year from URL patterns
+function extractYearFromUrl(url) {
+  const yearMatch = url.match(/\/(20\d{2})\//)
+  return yearMatch ? parseInt(yearMatch[1]) : null
+}
+
+// Helper to infer publication type from URL
+function inferPublicationType(url, title) {
+  if (url.includes('arxiv.org')) return 'preprint'
+  if (url.includes('ieeexplore.ieee.org')) return 'conference'
+  if (url.includes('acm.org') || url.includes('dl.acm.org')) return 'conference'
+  if (url.includes('springer.com') || url.includes('sciencedirect.com')) return 'journal'
+  if (url.includes('github.com')) return 'repository'
+  if (title.toLowerCase().includes('conference') || title.toLowerCase().includes('proc.')) return 'conference'
+  if (title.toLowerCase().includes('journal') || title.toLowerCase().includes('vol.')) return 'journal'
+  return 'web'
+}
+
