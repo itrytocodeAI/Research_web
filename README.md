@@ -1,28 +1,47 @@
 # DeepResearch AI Toolkit
 
-A research workspace for generating structured AI-assisted analysis, hypotheses, implementation plans, evaluation criteria, and exportable documents from a single topic prompt.
+A research workspace for generating structured AI-assisted analysis, hypotheses, implementation plans, evaluation criteria, and exportable documents from a single topic prompt. Designed for systematic literature reviews (SLR) and academic research planning.
 
 ## Features
 
-- AI-assisted deep research generation through a Gemini-backed Vercel API route
-- Structured outputs for research gaps, research problems, hypotheses, implementation plans, methodology, evaluation metrics, and XAI strategy
-- Clerk-based authentication for private research sessions
-- Word document export, Markdown document previews, and server-authenticated cloud export to Supabase Storage
-- Visible Gemini free-tier quota tracking with a hard stop when the daily quota is exhausted
-- Server-enforced daily quota guard backed by Supabase so this app fails closed before paid spillover
-- Responsive React + Vite interface with progress feedback
+### Research Generation
+- **Domain-Specific AI Research**: Gemini-backed analysis with specialized guidance for NLP, Computer Vision, Healthcare, Time-Series, Robotics, and more
+- **Concrete Model Recommendations**: Specific architecture suggestions (BERT, ViT, YOLO, Transformers, etc.) based on your topic
+- **Comprehensive Citations**: Automatic generation of 20-30 academic sources in IEEE and BibTeX formats
+- **Actionable Output**: 3-5 page Word documents detailed enough to feed to AI chatbots for implementation
+
+### Research Components
+- **Proposed Architecture**: Primary model recommendation, technical details, alternatives, implementation framework, expected performance
+- **Research Gaps**: 4-6 gaps with severity levels and academic references
+- **Research Problems**: 3-5 specific, measurable problems with significance analysis
+- **Hypotheses**: 3-5 testable hypotheses with detailed variables and methodology
+- **Implementation Plan**: Phased tasks, timeline, resources, and milestones
+- **Evaluation Metrics**: Category-based metrics with targets and visualization suggestions
+- **XAI Plan**: Explainability techniques, implementation strategy, and visualizations
+
+### User Experience
+- **77 Random Topic Suggestions**: Fresh suggestions on every visit from 9 domains (AI/ML, Climate, Blockchain, Robotics, Cybersecurity, IoT, Education, Finance, Quantum)
+- **Progress Tracking**: Real-time feedback during research generation
+- **Multiple Export Formats**: Word document + 5 Markdown files (citations, methodology, architecture, metrics, XAI)
+- **Citation Management**: IEEE numbered format and BibTeX for LaTeX integration
+
+### Security & Quota
+- **Clerk Authentication**: Secure private research sessions
+- **Server-Side Quota Enforcement**: Hard stop at free-tier limit (500 requests/day)
+- **Supabase Storage**: Private cloud export with signed URLs
+- **Fail-Closed Design**: Blocks research requests if quota guard misconfigured
 
 ## Technology Stack
 
-- Frontend: React + TypeScript + Vite
-- Styling: Tailwind CSS
-- Auth: Clerk
-- AI: Gemini API with Google Search grounding via `/api/research`
-- Storage: Supabase Storage via server-side upload route
-- Quota guard: Supabase Postgres + Vercel API routes
-- Hosting: Vercel
-- Documents: `docx`
-- Markdown rendering: `react-markdown`
+- **Frontend**: React 19 + TypeScript + Vite 7
+- **Styling**: Tailwind CSS 3.3
+- **Auth**: Clerk (frontend + server-side verification)
+- **AI**: Gemini API (gemini-2.5-flash-lite) with Google Search grounding
+- **Storage**: Supabase (quota table + private storage bucket)
+- **Quota Guard**: Supabase Postgres + Vercel API routes
+- **Hosting**: Vercel
+- **Document Generation**: `docx` for Word, Markdown for citations/methodology
+- **UI Components**: React Markdown, Framer Motion
 
 ## Getting Started
 
@@ -126,30 +145,145 @@ This app now prevents paid spillover from its own request path by enforcing the 
 
 ## Usage
 
-1. Sign in with Clerk.
-2. Review the Gemini quota card in the UI.
-3. Enter a research topic.
-4. Wait for the generated research brief.
-5. Download the Word report, inspect the Markdown documents, or upload the export bundle to Supabase Storage.
+1. **Sign in** with Clerk authentication
+2. **Review quota**: Check remaining requests in the quota card
+3. **Choose a topic**: Enter your own or select from 4 random suggestions
+4. **Generate research**: Wait for AI-powered analysis with 20-30 citations
+5. **Review output**: Examine research gaps, hypotheses, proposed architecture
+6. **Export**: Download comprehensive Word document (3-5 pages)
+7. **Citations**: Access IEEE and BibTeX formatted references in `citations.md`
+8. **Supplementary docs**: Review methodology, architecture, metrics, XAI implementation plans
+
+### Generated Documents
+
+Each research session produces:
+1. **Word Document**: Comprehensive research report with all sections
+2. **citations.md**: IEEE and BibTeX formatted references (20-30 sources)
+3. **dataset-search-methodology.md**: Data collection strategies
+4. **system-architecture.md**: Technical architecture overview
+5. **evaluation-metrics.md**: Performance metrics and targets
+6. **xai-implementation-plan.md**: Explainability techniques and visualizations
 
 ## Project Structure
 
 ```text
 src/
-  components/        React UI components
-  lib/               Research, quota, and document services
-  types/             Shared TypeScript models
+  components/
+    TopicInput.tsx         77-topic pool with random selection
+    ResearchProgress.tsx   Real-time progress indicator
+    ResearchResults.tsx    Comprehensive results display
+    DocumentViewer.tsx     Markdown preview with syntax highlighting
+  lib/
+    researchService.ts     Gemini API calls + JSON parsing
+    documentService.ts     Word + Markdown generation (6 files)
+    geminiQuota.ts         Client-side quota tracking
+    supabase.ts            Storage client
+  types/
+    index.ts               TypeScript interfaces (ResearchOutput, ProposedArchitecture, etc.)
 api/
-  _lib/              Server-side auth and quota helpers
-  export.js          Authenticated export route
-  quota.js           Quota status endpoint
-  research.js        Gemini-backed research route
+  _lib/
+    auth.js                Clerk server-side verification
+    geminiQuota.js         Server-side quota enforcement
+  research.js              Gemini research endpoint (domain-specific prompts)
+  quota.js                 Quota status endpoint
+  export.js                Authenticated Supabase upload
 supabase/
-  daily_ai_quota_usage.sql   Quota table schema
+  daily_ai_quota_usage.sql   Quota table schema with RLS
+Research_web_vault/          Obsidian knowledge vault (local only)
+  Implementation/            Changelog, decisions (ADRs)
+  Sessions/                  Development session notes
+  SLR/                       Systematic literature review materials
 ```
+
+## Key Features in Detail
+
+### Domain-Specific AI Guidance
+
+The system provides specialized recommendations based on your topic:
+- **NLP**: BERT, GPT, T5, BART, RoBERTa, fine-tuning strategies
+- **Computer Vision**: ViT, YOLO, ResNet, CNNs, Diffusion models, SAM
+- **Time-Series**: LSTMs, Transformers, Temporal CNNs, Prophet
+- **Healthcare**: Domain-adapted models, privacy-preserving techniques
+- **Reinforcement Learning**: PPO, DQN, A3C, RLHF
+- **Generative AI**: GANs, VAEs, Diffusion models, LLMs
+
+### Citation System
+
+- **Target**: 20-30 academic sources per research topic
+- **Formats**: IEEE numbered citations + BibTeX entries
+- **Metadata**: Authors, year, publication type (conference, journal, preprint, repository)
+- **Source Types**: Automatically inferred from URLs (arXiv, IEEE, ACM, Springer, etc.)
+- **Usage**: Copy IEEE citations to Word, import BibTeX to LaTeX projects
+
+### Research Output Structure
+
+```typescript
+ResearchOutput {
+  topic: string
+  executiveSummary: string
+  researchGaps: [{title, description, severity, references}]
+  researchProblems: [{id, statement, significance, relatedGaps}]
+  hypotheses: [{id, hypothesis, variables, methodology}]
+  proposedArchitecture: {
+    primaryModel: string           // e.g., "BERT-base-uncased"
+    rationale: string              // Why this model
+    architectureDetails: string    // Technical specifics
+    alternatives: string[]         // Other viable options
+    implementationFramework: string // PyTorch/TensorFlow/JAX
+    expectedPerformance: string    // Benchmark expectations
+  }
+  implementationPlan: {phase, tasks, timeline, resources, milestones}
+  methodology: string
+  evaluationMetrics: [{category, metrics, description}]
+  xaiPlan: {techniques, implementation, expectedOutputs, visualizations}
+  sources: [{title, url, authors, year, publicationType}]
+}
+```
+
+## Recent Enhancements
+
+### 2026-04-06: Citation System
+- Added automatic IEEE and BibTeX citation generation
+- Target 20-30 sources per research topic
+- Metadata extraction from URLs (authors, year, publication type)
+
+### 2026-04-04: Research Quality Enhancement
+- Added ProposedArchitecture field with specific model recommendations
+- Expanded topic suggestions from 4 to 77 across 9 domains
+- Enhanced Word documents from 1-2 pages to 3-5 pages
+- Domain-specific prompts for personalized research
+- Merged architecture into methodology section for better flow
+
+### 2026-04-04: UI Improvements
+- Randomized topic suggestions (4 shown from 77-topic pool)
+- Simplified export to Word-only (removed PDF/cloud upload)
+- Improved markdown viewer contrast
+- Cleaner, more focused user interface
+
+## Architecture Decisions
+
+Key ADRs documented in `Research_web_vault/Implementation/Decisions.md`:
+- **ADR-014**: IEEE Citation System - Automatic citation generation with metadata extraction
+- **ADR-013**: Merged Methodology Section - Cohesive architecture + methodology flow
+- **ADR-012**: ProposedArchitecture Field - Structured model recommendations
+- **ADR-011**: Randomized Topic Suggestions - 77-topic pool with 4-random display
+- **ADR-010**: Single Export Path - Word-only export for simplicity
 
 ## Notes
 
-- The app assumes Clerk, Supabase, and Gemini are configured before runtime.
-- The quota card reflects the server-authoritative quota state.
-- The current design intentionally avoids client-side direct storage writes to reduce IDOR risk.
+- **Configuration Required**: Clerk, Supabase, and Gemini must be configured before runtime
+- **Quota Tracking**: UI quota card reflects server-authoritative state
+- **Security**: Client never gets direct Supabase write access (IDOR protection)
+- **Token Usage**: Enhanced prompts use ~15-20% more tokens than baseline
+- **Citation Quality**: Metadata may be inferred from URLs; verify before publication
+- **Free Tier**: 500 grounded requests/day, resets at midnight Pacific time
+
+## Knowledge Vault
+
+The project includes a local Obsidian vault (`Research_web_vault/`) for:
+- **Implementation notes**: Changelog, architecture decisions (ADRs)
+- **Development sessions**: Detailed session notes with context
+- **SLR materials**: Systematic literature review protocol and strategies
+- **Assistant guides**: `CLAUDE.md` and `CODEX.md` for AI assistant context
+
+**Note**: The vault is `.gitignore`d - it's a local working memory system.
