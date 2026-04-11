@@ -77,7 +77,7 @@ GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-2.5-flash-lite
 ```
 
-You can also copy from [`.env.example`](d:/Projects/Research_web/.env.example).
+<!-- You can also copy from [`.env.example`](d:/Projects/Research_web/.env.example). -->
 
 ## Deploying To Vercel
 
